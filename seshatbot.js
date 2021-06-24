@@ -1,6 +1,7 @@
 import { Command } from 'commander'
 const program = new Command();
 import Environment from './src/Environment.js'
+import extractDiscordMetrics from './src/extractDiscordMetrics.js'
 
 const environment = new Environment()
 environment.initDotEnv('./')
@@ -41,7 +42,7 @@ program
     const { GUILD_ID, DISCORD_TOKEN, VOYAGE, CHANNEL } = environment.getOperationalVars()
     
     try {
-      //await extractChannelMetrics(environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CHANNEL)
+      await extractDiscordMetrics(environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CHANNEL)
       process.exit(0)
     }
     catch (err) {

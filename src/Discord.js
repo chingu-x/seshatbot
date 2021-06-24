@@ -34,31 +34,37 @@ export default class Discord {
     return channel
   }
 
-  getDiscordClient() {
-    return this.client
+  // Get the team channels for the specified Voyage
+  getChannelNames(guild, voyageName, channelPattern) {
+    // Locate the owning category name. This assumes that category names are
+    // formatted as 'v31-🔥' where '31' is any two digit voyage number.
+    const category = guild.channels.cache.find(category => 
+      category.type === 'category' && category.name === this.getCategoryName(voyageName))
+
+    // Get the team channel names in this category. Team channel names are 
+    // formatted as `teamname-team-nn` where `teamname` is an animal name, 
+    // 'team' is a literal, and `nn` is a numeric team number 
+    // (e.g. `bears-team-09')
+    let channelNames = category.children.reduce((channels, channel) => {
+      const result = channel.name.match(channelPattern)
+      if (result) {
+        channels.push(channel)
+      }
+      return channels
+    }, [])
   }
 
-  generateCategoryName(teams) {
-    return 'v'.concat(teams.voyage_number,'-🔥')
+  getCategoryName(voyageName) {
+    return voyageName.concat('-🔥')
+  }  
+  
+  getDiscordClient() {
+    return this.client
   }
 
   isCategoryCreated(guild, categoryName) {
     return guild.channels.cache.array()
       .filter(channel => channel.type === 'category' && channel.name === categoryName)
-  }
-
-  async createChannelCategory(guild, categoryName) {
-    const category = await guild.channels.create(categoryName, {
-      type: 'category',
-      topic: `${ categoryName }`,
-      position: 1,
-      permissionOverwrites: [
-        {
-          id: guild.id,
-          deny: ['VIEW_CHANNEL'],
-        }]
-    })
-    return category
   }
 
   isChannelCreated(guild, categoryName = '', channelName) {
@@ -70,19 +76,6 @@ export default class Discord {
       let category = this.isCategoryCreated(guild, categoryName)
       return category.length > 0 && category[0].name === categoryName ? channel : []
     }
-    return channel
-  }
-
-  async postGreetingMessage(channel, greetingMessageText) {
-    await channel.send(greetingMessageText)
-  }
-
-  async createChannel(guild, category, channelType, teamName) {
-    const channel = await guild.channels.create(teamName, {
-      type: `${ channelType }`,
-      topic: `${ teamName }`,
-      parent: category.id,
-    })
     return channel
   }
 
