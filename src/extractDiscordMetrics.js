@@ -27,8 +27,11 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       for (let channel of teamChannels) {
         const allMessages = await channel.messages.fetch({limit: 100}, false, true)
         const summarizedMessages = allMessages.map(post => {
-          // console.log('\n...post: ', post)
-          return { createdTimestamp: post.createdTimestamp,  author: post.author.username, discriminator: post.author.discriminator }
+          return { 
+            createdTimestamp: post.createdTimestamp,  
+            author: post.author.username, 
+            discriminator: post.author.discriminator
+          }
         })
         console.log('...summarizedMessages: ', summarizedMessages)
 
