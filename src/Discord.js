@@ -35,23 +35,22 @@ export default class Discord {
   }
 
   // Get the team channels for the specified Voyage
-  getChannelNames(guild, voyageName, channelPattern) {
-    // Locate the owning category name. This assumes that category names are
-    // formatted as 'v31-🔥' where '31' is any two digit voyage number.
+  getChannelNames(guild, categoryRegex, channelRegex) {
+    // Locate the owning category name. 
     const category = guild.channels.cache.find(category => 
-      category.type === 'category' && category.name === this.getCategoryName(voyageName))
+      category.type === 'category' && category.name.match(categoryRegex)
+    )
 
-    // Get the team channel names in this category. Team channel names are 
-    // formatted as `teamname-team-nn` where `teamname` is an animal name, 
-    // 'team' is a literal, and `nn` is a numeric team number 
-    // (e.g. `bears-team-09')
-    let channelNames = category.children.reduce((channels, channel) => {
-      const result = channel.name.match(channelPattern)
-      if (result) {
+    // Get the team channel names in this category. 
+    let teamChannels = category.children.reduce((channels, channel) => {
+      const result = channel.name.match(channelRegex)
+      if (result !== null) {
         channels.push(channel)
       }
       return channels
     }, [])
+    
+    return {category, teamChannels }
   }
 
   getCategoryName(voyageName) {

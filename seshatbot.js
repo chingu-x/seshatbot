@@ -14,6 +14,7 @@ const consoleLogOptions = (options) => {
     console.log('- debug: ', options.debug)
     console.log('- guild id: ', options.guildID)
     console.log('- voyage: ', options.voyage)
+    console.log('- category: ', options.category)
     console.log('- channel: ', options.channel)
   }
 }
@@ -25,7 +26,8 @@ program
   .description('Extract Voyage team metrics from team channels')
   .option('-d, --debug <debug>', 'Debug switch to add runtime info to console (YES/NO)')
   .option('-v, --voyage <name>', 'Voyage (e.g. "v31") to be selected')
-  .option('-c, --channel <pattern>', 'Channel name regex pattern (e.g. [a-z]+-team-\d{2}) to match on')
+  .option('-t, --category <regex-pattern>', 'Category name regex pattern (e.g. vd{2}-🔥$) to match on')
+  .option('-c, --channel <regex-pattern>', 'Channel name regex pattern (e.g. [a-z]+-team-\d{2}$) to match on')
   .action(async (options) => {
     environment.setOperationalVars({
       debug: options.debug,
@@ -39,10 +41,10 @@ program
     debug && console.log('\noperationalVars: ', environment.getOperationalVars())
     debug && environment.logEnvVars()
 
-    const { GUILD_ID, DISCORD_TOKEN, VOYAGE, CHANNEL } = environment.getOperationalVars()
+    const { GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
     
     try {
-      await extractDiscordMetrics(environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CHANNEL)
+      await extractDiscordMetrics(environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL)
       process.exit(0)
     }
     catch (err) {

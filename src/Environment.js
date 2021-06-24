@@ -13,6 +13,7 @@ export default class Environment {
     console.log('- GUILD_ID: ', process.env.GUILD_ID)
     console.log('- DISCORD_TOKEN: ', process.env.DISCORD_TOKEN)
     console.log('- VOYAGE: ', process.env.VOYAGE)
+    console.log('- CATEGORY: ', process.env.CATEGORY)
     console.log('- CHANNEL: ', process.env.CHANNEL)
 
     return true
@@ -44,7 +45,7 @@ export default class Environment {
 
   setOperationalVars(options) {
     // Retrieve the current variable values from `.env` file
-    let { DEBUG, GUILD_ID, DISCORD_TOKEN, VOYAGE, CHANNEL} = process.env
+    let { DEBUG, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL} = process.env
 
     // Initialize `operationalVars` allowing command line parameter values
     // to override `.env` parameters
@@ -53,6 +54,7 @@ export default class Environment {
     this.operationalVars.GUILD_ID = GUILD_ID
     this.operationalVars.DISCORD_TOKEN = DISCORD_TOKEN
     this.operationalVars.VOYAGE = options.voyage ? options.voyage : VOYAGE
+    this.operationalVars.CATEGORY = options.category ? options.category : CATEGORY
     this.operationalVars.CHANNEL = options.channel ? options.channel : CHANNEL
   }
 }
