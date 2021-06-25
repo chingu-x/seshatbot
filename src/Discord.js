@@ -19,19 +19,31 @@ export default class Discord {
     })
   }
 
-  findChannel(guild, channelName) {
-    // Validate category ownership if channel name is formatted as
-    // 'categoryname/channelname'
-    const indexOfSlash = channelName.indexOf('/')
-    const categoryName = indexOfSlash >= 0 ? channelName.substring(0,indexOfSlash) : ''
-    const realChannelName = indexOfSlash >= 0 ? channelName.substring(indexOfSlash + 1) : channelName
-    const channel = guild.channels.cache.find(channel => channel.name === realChannelName)
-    let category = guild.channels.cache.find(category => 
-      category.id === channel.parentID && category.type === 'category' && category.name === categoryName)
-    if (category.length === 0) {
-      return null
-    }  
-    return channel
+  async fetchAllMessages(channel) {
+    let isMoreMessages = true
+    let fetchOptions = { limit: 100 }
+    let channelMessages = []
+    try {
+      do {
+        const fetchedMessages = await channel.fetch(fetchOptions)
+        const messages = fetchedMessages.array()
+        if (messages.length > 0) {
+          messages.map((message) => {
+            channelMessages.push({ 
+              createdTimestamp: message.createdTimestamp,  
+              author: message.author.username, 
+              discriminator: message.author.discriminator
+            })
+          })
+          fetchOptions = { limit: 100, before: fetchedMessages.last().id }
+        } else {
+          isMoreMessages = false // Stop fetching messages for this channel
+        }
+      } while (isMoreMessages)
+      return channelMessages
+    } catch (err) {
+      return reject(`Error retrieving messages for channel: ${channel.name} ${err}`)
+    }
   }
 
   // Get the team channels for the specified Voyage
@@ -52,30 +64,9 @@ export default class Discord {
     
     return {category, teamChannels }
   }
-
-  getCategoryName(voyageName) {
-    return voyageName.concat('-🔥')
-  }  
   
   getDiscordClient() {
     return this.client
-  }
-
-  isCategoryCreated(guild, categoryName) {
-    return guild.channels.cache.array()
-      .filter(channel => channel.type === 'category' && channel.name === categoryName)
-  }
-
-  isChannelCreated(guild, categoryName = '', channelName) {
-    const channel = guild.channels.cache.array()
-      .filter(channel => channel.name === channelName)
-    
-    // Validate that channel is owned by a category based on an optional category name parm
-    if (categoryName !== '') {
-      let category = this.isCategoryCreated(guild, categoryName)
-      return category.length > 0 && category[0].name === categoryName ? channel : []
-    }
-    return channel
   }
 
 }
