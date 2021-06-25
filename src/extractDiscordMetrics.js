@@ -14,7 +14,6 @@ const summarizeMessages = (teamNo, message) => {
 }
 
 const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL) => {
-  const ALL_TEAMS = 0
   const discordIntf = new Discord(environment)
 
   const client = discordIntf.getDiscordClient()
@@ -36,7 +35,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       )
 
       // Count the number of messages for each team member in each team channel
-      let teamNo = 1
+      let teamNo = 0
       for (let channel of teamChannels) {
         if (channel.type !== 'category') {
           // Retrieve all messages in the channel
