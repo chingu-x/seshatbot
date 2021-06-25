@@ -1,6 +1,10 @@
 import Discord from './Discord.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
+const tallyMessages = async (message) => {
+  console.log('\nallMessage called!')
+}
+
 const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL) => {
   const ALL_TEAMS = 0
   const CATEGORY_NO = 1
@@ -26,8 +30,8 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       let teamNo = CATEGORY_NO
       for (let channel of teamChannels) {
         // Retrieve all messages in the channel
-        let allMessages = await discordIntf.fetchAllMessages(channel)
-        console.log('allMessages: ', allMessages)
+        let allMessages = await discordIntf.fetchAllMessages(channel, tallyMessages)
+        //console.log('allMessages: ', allMessages)
 
         // Update the progress bar
         progressBars[teamNo+1].increment(1)

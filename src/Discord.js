@@ -19,21 +19,16 @@ export default class Discord {
     })
   }
 
-  async fetchAllMessages(channel) {
+  async fetchAllMessages(channel, callback) {
     let isMoreMessages = true
     let fetchOptions = { limit: 100 }
     let channelMessages = []
     try {
       do {
-        const fetchedMessages = await channel.fetch(fetchOptions)
-        const messages = fetchedMessages.array()
-        if (messages.length > 0) {
+        const messages = await channel.messages.fetch(fetchOptions)
+        if (messages.size > 0) {
           messages.map((message) => {
-            channelMessages.push({ 
-              createdTimestamp: message.createdTimestamp,  
-              author: message.author.username, 
-              discriminator: message.author.discriminator
-            })
+            callback(message)
           })
           fetchOptions = { limit: 100, before: fetchedMessages.last().id }
         } else {
@@ -42,7 +37,8 @@ export default class Discord {
       } while (isMoreMessages)
       return channelMessages
     } catch (err) {
-      return reject(`Error retrieving messages for channel: ${channel.name} ${err}`)
+      console.log(`Error retrieving messages for channel: ${channel.name} ${err}`)
+      return Error(`Error retrieving messages for channel: ${channel.name} ${err}`)
     }
   }
 
