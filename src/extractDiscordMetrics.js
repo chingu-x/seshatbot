@@ -1,13 +1,20 @@
 import Discord from './Discord.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
-const tallyMessages = async (message) => {
-  console.log('\nallMessage called!')
+let messageSummary = []
+
+const summarizeMessages = (teamNo, message) => {
+  const discordUserID = message.author.username.concat('#',message.author.discriminator)
+  if (messageSummary[teamNo].userMessages.has(discordUserID)) {
+    let userCount = messageSummary[teamNo].userMessages.get(discordUserID) + 1
+    messageSummary[teamNo].userMessages.set(discordUserID, userCount)
+  } else {
+    messageSummary[teamNo].userMessages.set(discordUserID, 1)
+  }
 }
 
 const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL) => {
   const ALL_TEAMS = 0
-  const CATEGORY_NO = 1
   const discordIntf = new Discord(environment)
 
   const client = discordIntf.getDiscordClient()
@@ -19,30 +26,39 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       const { category, teamChannels } = discordIntf.getChannelNames(guild, CATEGORY, CHANNEL)
 
       // Set up the progress bars
-      const channelNames = [ category.name ]
+      const channelNames = [category.name]
+
       teamChannels.forEach(channel => channelNames.push(channel.name))
       let { overallProgress, progressBars } = initializeProgressBars(
+        category.name,
         channelNames, 
         { includeDetailBars: true, includeCategory: true }
       )
 
       // Count the number of messages for each team member in each team channel
-      let teamNo = CATEGORY_NO
+      let teamNo = 1
       for (let channel of teamChannels) {
-        // Retrieve all messages in the channel
-        let allMessages = await discordIntf.fetchAllMessages(channel, tallyMessages)
-        //console.log('allMessages: ', allMessages)
+        if (channel.type !== 'category') {
+          // Retrieve all messages in the channel
+          messageSummary[teamNo] = { 
+            voyage: VOYAGE,
+            teamName: channel.name, 
+            userMessages: new Map()
+          }
+          await discordIntf.fetchAllMessages(channel, teamNo, summarizeMessages)
 
-        // Update the progress bar
-        progressBars[teamNo+1].increment(1)
-        progressBars[ALL_TEAMS].increment(1) 
-        ++teamNo 
+          // Update the progress bar
+          progressBars[0].increment(1)
+          progressBars[teamNo].increment(1)
+          ++teamNo 
+        }
       }
+      console.log('\nmessageSummary: ', messageSummary)
+
 
       // Add or update matching rows in Airtable
 
       // Terminate processing
-      progressBars[CATEGORY_NO].increment(1) 
       overallProgress.stop()
       discordIntf.commandResolve('done')
     })
