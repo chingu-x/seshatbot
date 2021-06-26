@@ -15,7 +15,7 @@ const initializeProgressBars = (voyageName, teamChannelNames, { includeDetailBar
 
   if (includeDetailBars) {
     progressBars[0] = overallProgress.create(teamChannelNames.length-1, 0)
-    progressBars[0].update(0, { description: teamChannelNames[0].padEnd(DESC_MAX_LTH+10, ' ') })
+    progressBars[0].update(0, { description: voyageName.padEnd(DESC_MAX_LTH+10, ' ') })
     
     for (let teamNo = 1; teamNo < teamChannelNames.length; ++teamNo) {
       progressBars[teamNo] = overallProgress.create(1, 0)

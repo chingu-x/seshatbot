@@ -35,7 +35,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       )
 
       // Count the number of messages for each team member in each team channel
-      let teamNo = 0
+      let teamNo = 1
       for (let channel of teamChannels) {
         if (channel.type !== 'category') {
           // Retrieve all messages in the channel
@@ -52,13 +52,12 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
           ++teamNo 
         }
       }
-      console.log('\nmessageSummary: ', messageSummary)
-
 
       // Add or update matching rows in Airtable
 
       // Terminate processing
       overallProgress.stop()
+      //console.log('\nmessageSummary: ', messageSummary)
       discordIntf.commandResolve('done')
     })
   }
