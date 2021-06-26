@@ -41,7 +41,7 @@ program
     debug && console.log('\noperationalVars: ', environment.getOperationalVars())
     debug && environment.logEnvVars()
 
-    const { GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
+    const { GUILD_ID, AIRTABLE_API_KEY, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
     
     try {
       await extractDiscordMetrics(environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL)

@@ -19,7 +19,7 @@ export default class Discord {
     })
   }
 
-  async fetchAllMessages(channel, teamNo, callback) {
+  async fetchAllMessages(channel, voyageName, teamNo, callback) {
     return new Promise(async (resolve, reject) => {
       let isMoreMessages = true
       let fetchOptions = { limit: 100 }
@@ -28,7 +28,7 @@ export default class Discord {
           const messages = await channel.messages.fetch(fetchOptions)
           if (messages.size > 0) {
             messages.map((message) => {
-              callback(teamNo, message) // Invoke the callback function to process messages
+              callback(voyageName, teamNo, message) // Invoke the callback function to process messages
             })
             fetchOptions = { limit: 100, before: messages.last().id }
           } else {
@@ -36,6 +36,7 @@ export default class Discord {
           }
         } while (isMoreMessages)
       } catch (err) {
+        console.log(err)
         return reject(`Error retrieving messages for channel: ${channel.name} ${err}`)
       }
       return resolve()
