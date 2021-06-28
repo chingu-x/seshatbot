@@ -5,7 +5,8 @@ import initializeProgressBars from './initializeProgressBars.js'
 let messageSummary = []
 
 const getSprintStartDt = async (voyageName, messageTimestamp) => {
-  await getVoyageSchedule(voyageName, messageTimestamp)
+  const schedule = await getVoyageSchedule(voyageName, messageTimestamp)
+  console.log('schedule: ', schedule)
 }
 
 const getSprintEndDt = (voyageName, messageTimestamp) => {}
@@ -14,12 +15,12 @@ const getTierName = (channelName) => {};
 
 const getTeamNo = (channelName) => {}
 
-const summarizeMessages = (voyageName, teamNo, message) => {
+const summarizeMessages = async (voyageName, teamNo, message) => {
   console.log('message: ', message.createdTimestamp)
   const discordUserID = message.author.username.concat('#',message.author.discriminator)
   if (messageSummary[teamNo].userMessages.has(discordUserID)) {
     let userCount = messageSummary[teamNo].userMessages.get(discordUserID) + 1
-    messageSummary[teamNo].sprintStartDt = getSprintStartDt(voyageName, message.createdTimestamp)
+    messageSummary[teamNo].sprintStartDt = await getSprintStartDt(voyageName, message.createdTimestamp)
     messageSummary[teamNo].sprintEndDt = getSprintEndDt(voyageName, message.createdTimestamp)
     messageSummary[teamNo].userMessages.set(discordUserID, userCount)
   } else {
@@ -74,6 +75,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       }
 
       // Add or update matching rows in Airtable
+
 
       // Terminate processing
       //overallProgress.stop()

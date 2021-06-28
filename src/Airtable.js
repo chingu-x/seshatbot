@@ -2,10 +2,11 @@ import Airtable from 'airtable'
 
 const getVoyageSchedule = async (voyageName, timestamp) => {
 
-  const base = new Airtable({ apiKey: 'keyiO162I2wFa5gPq' }).base('appfnDw1vdrDWJ4SB')
+  const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base('appfnDw1vdrDWJ4SB')
 
   base('Schedules').select({ 
-    filterByFormula: `AND({{ Name } = '${ voyageName }}', { { Type } = 'Voyage'})`,
+    fields: ['Name', 'Type', 'Start Date', 'End Date'],
+    filterByFormula: '{ Name } = '.concat('"', voyageName, '"'),
     view: 'Schedules' 
   })
   .firstPage((err, records) => {
