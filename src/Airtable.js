@@ -1,5 +1,6 @@
 import Airtable from 'airtable'
 
+// Retrieve the schedule for the specified Voyage
 const getVoyageSchedule = async (voyageName, timestamp) => {
   return new Promise(async (resolve, reject) => {
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base('appfnDw1vdrDWJ4SB')

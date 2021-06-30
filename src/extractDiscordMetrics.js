@@ -14,6 +14,8 @@ const getTierName = (channelName) => {};
 
 const getTeamNo = (channelName) => {}
 
+// Invoked as a callback from Discord.fetchAllMessages this fills in the
+// `messageSummary` object for each voyage, team, sprint, and team member.
 const summarizeMessages = async (voyageName, teamNo, message) => {
   return new Promise(async (resolve, reject) => {
     console.log('message: ', message)
@@ -32,6 +34,7 @@ const summarizeMessages = async (voyageName, teamNo, message) => {
   })
 }
 
+// Extract team message metrics from the Discord channels
 const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL) => {
   const discordIntf = new Discord(environment)
 
