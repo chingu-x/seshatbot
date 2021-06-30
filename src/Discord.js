@@ -19,6 +19,9 @@ export default class Discord {
     })
   }
 
+  // Fetch all messages from the selected Discord team channels.
+  // Note that the `callback` routine is invoked for each message to
+  // accumulate any desired metrics.
   async fetchAllMessages(channel, voyageName, teamNo, callback) {
     return new Promise(async (resolve, reject) => {
       let isMoreMessages = true
