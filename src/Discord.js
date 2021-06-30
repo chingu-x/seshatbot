@@ -27,8 +27,8 @@ export default class Discord {
         do {
           const messages = await channel.messages.fetch(fetchOptions)
           if (messages.size > 0) {
-            messages.map((message) => {
-              callback(voyageName, teamNo, message) // Invoke the callback function to process messages
+            messages.map(async (message) => {
+              await callback(voyageName, teamNo, message) // Invoke the callback function to process messages
             })
             fetchOptions = { limit: 100, before: messages.last().id }
           } else {

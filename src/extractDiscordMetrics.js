@@ -4,9 +4,8 @@ import initializeProgressBars from './initializeProgressBars.js'
 
 let messageSummary = []
 
-const getSprintStartDt = async (voyageName, messageTimestamp) => {
-  const schedule = await getVoyageSchedule(voyageName, messageTimestamp)
-  console.log('schedule: ', schedule)
+const getSprintStartDt =  (voyageName, messageTimestamp) => {
+
 }
 
 const getSprintEndDt = (voyageName, messageTimestamp) => {}
@@ -16,16 +15,21 @@ const getTierName = (channelName) => {};
 const getTeamNo = (channelName) => {}
 
 const summarizeMessages = async (voyageName, teamNo, message) => {
-  console.log('message: ', message.createdTimestamp)
-  const discordUserID = message.author.username.concat('#',message.author.discriminator)
-  if (messageSummary[teamNo].userMessages.has(discordUserID)) {
-    let userCount = messageSummary[teamNo].userMessages.get(discordUserID) + 1
-    messageSummary[teamNo].sprintStartDt = await getSprintStartDt(voyageName, message.createdTimestamp)
-    messageSummary[teamNo].sprintEndDt = getSprintEndDt(voyageName, message.createdTimestamp)
-    messageSummary[teamNo].userMessages.set(discordUserID, userCount)
-  } else {
-    messageSummary[teamNo].userMessages.set(discordUserID, 1)
-  }
+  return new Promise(async (resolve, reject) => {
+    console.log('message: ', message)
+    const discordUserID = message.author.username.concat('#',message.author.discriminator)
+    if (messageSummary[teamNo].userMessages.has(discordUserID)) {
+      const schedule = await getVoyageSchedule(voyageName, message.createdTimestamp)
+      console.log('schedule: ', schedule)
+      let userCount = messageSummary[teamNo].userMessages.get(discordUserID) + 1
+      messageSummary[teamNo].sprintStartDt = schedule.startDt
+      messageSummary[teamNo].sprintEndDt = schedule.endDt
+      messageSummary[teamNo].userMessages.set(discordUserID, userCount)
+    } else {
+      messageSummary[teamNo].userMessages.set(discordUserID, 1)
+    }
+    resolve()
+  })
 }
 
 const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL) => {
