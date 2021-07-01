@@ -20,7 +20,6 @@ const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
   throw new Error('Message timestamp outside Voyage boundaries')
 }
 
-
 const getTierName = (channelName) => {};
 
 const getTeamNo = (channelName) => {}
