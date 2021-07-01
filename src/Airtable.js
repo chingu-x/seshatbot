@@ -30,7 +30,7 @@ const calculateSprints = (voyageStartDt, voyageEndDt) => {
     sprint.startDt = startDt.toString()
     endDt.setDate(endDt.getDate() + 7)
     sprint.endDt = endDt.toString()
-    sprintSchedule.push(sprint)
+    sprintSchedule.push(Object.assign({}, sprint))
   }
 
   return sprintSchedule
@@ -57,13 +57,11 @@ const getVoyageSchedule = async (voyageName, timestamp) => {
       const voyageStartDt = records[0].get('Start Date')
       const voyageEndDt = records[0].get('End Date')
       const sprintSchedule = calculateSprints(voyageStartDt, voyageEndDt)
-      console.log('sprintSchedule: ', sprintSchedule)
 
       resolve({
         voyageName: records[0].get('Name'),
         startDt: voyageStartDt,
         endDt: voyageEndDt,
-        currentSprint: 1,
         sprintSchedule: sprintSchedule
       })
     })
