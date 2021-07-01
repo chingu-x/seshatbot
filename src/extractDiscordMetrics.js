@@ -18,7 +18,6 @@ const getTeamNo = (channelName) => {}
 // `messageSummary` object for each voyage, team, sprint, and team member.
 const summarizeMessages = async (voyageName, teamNo, message) => {
   return new Promise(async (resolve, reject) => {
-    console.log('message: ', message)
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
     if (messageSummary[teamNo].userMessages.has(discordUserID)) {
       const schedule = await getVoyageSchedule(voyageName, message.createdTimestamp)
