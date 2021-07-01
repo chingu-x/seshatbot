@@ -4,11 +4,22 @@ import initializeProgressBars from './initializeProgressBars.js'
 
 let messageSummary = []
 
-const getSprintStartDt =  (voyageName, messageTimestamp) => {
-
+const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
+  console.log('messageTimestamp: ', messageTimestamp)
+  console.log('sprintSchedule: ', sprintSchedule)
+  for (let sprint of sprintSchedule) {
+    const startDt = new Date(sprint.startDt)
+    const endDt = new Date(sprint.endDt)
+    if (messageTimestamp >= startDt && messageTimestamp <= endDt) {
+      return { 
+        sprintStartDt: sprint.startDt,
+        sprintEndDt: sprint.endDt
+      }
+    }
+  }
+  throw new Error('Message timestamp outside Voyage boundaries')
 }
 
-const getSprintEndDt = (voyageName, messageTimestamp) => {}
 
 const getTierName = (channelName) => {};
 
@@ -21,10 +32,11 @@ const summarizeMessages = async (voyageName, teamNo, message) => {
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
     if (messageSummary[teamNo].userMessages.has(discordUserID)) {
       const schedule = await getVoyageSchedule(voyageName, message.createdTimestamp)
-      console.log('schedule: ', schedule)
       let userCount = messageSummary[teamNo].userMessages.get(discordUserID) + 1
-      messageSummary[teamNo].sprintStartDt = schedule.startDt
-      messageSummary[teamNo].sprintEndDt = schedule.endDt
+      const { sprintStartDt, sprintEndDt } = getSprintInfo(
+        schedule.sprintSchedule, message.createdTimestamp)
+      messageSummary[teamNo].sprintStartDt = sprintStartDt
+      messageSummary[teamNo].sprintEndDt = sprintEndDt
       messageSummary[teamNo].userMessages.set(discordUserID, userCount)
     } else {
       messageSummary[teamNo].userMessages.set(discordUserID, 1)
@@ -72,6 +84,8 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
           }
 
           await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo, summarizeMessages)
+
+          console.log('messageSummary: ', messageSummary)
 
           // Update the progress bar
           //progressBars[0].increment(1)
