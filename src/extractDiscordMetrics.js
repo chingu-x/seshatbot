@@ -20,9 +20,25 @@ const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
   throw new Error('Message timestamp outside Voyage boundaries')
 }
 
-const getTierName = (channelName) => {};
+// Extract the tier from the Discord channel name. Channel names must be
+// formatted as `<tier-name>-team-<team-no>`
+const getTierName = (channelName) => {
+  const tierNameTranslations = [
+    { animalName: 'Toucans', tierName: 'Tier 1'},
+    { animalName: 'Geckos', tierName: 'Tier 2'},
+    { animalName: 'Bears', tierName: 'Tier 3'},
+  ]
+  const tierNameIndex = tierNameTranslations.findIndex(translation => 
+    translation.animalName.toLowerCase() === channelName.split('-')[0].toLowerCase()
+  )
+  return tierNameTranslations[tierNameIndex].tierName
+}
 
-const getTeamNo = (channelName) => {}
+// Extract the team number from the Discord channel name. Channel names must be
+// formatted as `<tier-name>-team-<team-no>`
+const getTeamNo = (channelName) => {
+  return channelName.split('-')[2]
+}
 
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.

@@ -1,5 +1,4 @@
 import DiscordJS from 'discord.js'
-import FileOps from './FileOps.js'
 
 export default class Discord {
   constructor(environment) {
