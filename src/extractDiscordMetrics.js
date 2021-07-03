@@ -5,8 +5,6 @@ import initializeProgressBars from './initializeProgressBars.js'
 let messageSummary = []
 
 const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
-  console.log('messageTimestamp: ', messageTimestamp)
-  console.log('sprintSchedule: ', sprintSchedule)
   for (let sprint of sprintSchedule) {
     const startDt = new Date(sprint.startDt)
     const endDt = new Date(sprint.endDt)
@@ -42,8 +40,10 @@ const getTeamNo = (channelName) => {
 
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.
+// TODO: Modify to create and push an object onto the messageSummary array
 const summarizeMessages = async (voyageName, teamNo, message) => {
   return new Promise(async (resolve, reject) => {
+    console.log('summarizeMessages - voyageName: ', voyageName, ' teamNo: ', teamNo, ' message: ', message)
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
     if (messageSummary[teamNo].userMessages.has(discordUserID)) {
       const schedule = await getVoyageSchedule(voyageName, message.createdTimestamp)
@@ -87,8 +87,10 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       // Count the number of messages for each team member in each team channel
       let teamNo = 1
       for (let channel of teamChannels) {
+        console.log('channel.name: ', channel.name)
         if (channel.type !== 'category') {
           // Retrieve all messages in the channel
+          // TODO: Generate the following in summarizeMessages instead of here
           messageSummary[teamNo] = { 
             voyage: VOYAGE,
             sprintStartDt: null,
