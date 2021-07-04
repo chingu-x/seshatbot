@@ -2,14 +2,15 @@ import getVoyageSchedule from './Airtable.js'
 import Discord from './Discord.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
-let messageSummary = []
-
 const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
+  let sprintNo = 0
   for (let sprint of sprintSchedule) {
+    sprintNo = sprintNo + 1
     const startDt = new Date(sprint.startDt)
     const endDt = new Date(sprint.endDt)
     if (messageTimestamp >= startDt && messageTimestamp <= endDt) {
       return { 
+        sprintNo: sprintNo,
         sprintStartDt: sprint.startDt,
         sprintEndDt: sprint.endDt
       }
@@ -35,27 +36,31 @@ const getTierName = (channelName) => {
 // Extract the team number from the Discord channel name. Channel names must be
 // formatted as `<tier-name>-team-<team-no>`
 const getTeamNo = (channelName) => {
-  return channelName.split('-')[2]
+  return parseInt(channelName.split('-')[2])
 }
 
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.
-// TODO: Modify to create and push an object onto the messageSummary array
-const summarizeMessages = async (voyageName, teamNo, message) => {
+const summarizeMessages = async (voyageName, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
-    console.log('summarizeMessages - voyageName: ', voyageName, ' teamNo: ', teamNo, ' message: ', message)
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
-    if (messageSummary[teamNo].userMessages.has(discordUserID)) {
-      const schedule = await getVoyageSchedule(voyageName, message.createdTimestamp)
-      let userCount = messageSummary[teamNo].userMessages.get(discordUserID) + 1
-      const { sprintStartDt, sprintEndDt } = getSprintInfo(
-        schedule.sprintSchedule, message.createdTimestamp)
-      messageSummary[teamNo].sprintStartDt = sprintStartDt
-      messageSummary[teamNo].sprintEndDt = sprintEndDt
-      messageSummary[teamNo].userMessages.set(discordUserID, userCount)
-    } else {
-      messageSummary[teamNo].userMessages.set(discordUserID, 1)
+    const schedule = await getVoyageSchedule(voyageName, message.createdTimestamp)
+    const { sprintNo, sprintStartDt, sprintEndDt } = getSprintInfo(
+      schedule.sprintSchedule, message.createdTimestamp)
+    messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
+    messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
+
+    for (let sprintIndex = 0; sprintIndex < 6; ++sprintIndex) {
+      if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
+        if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserID)) {
+          let userCount = messageSummary[teamNo, sprintIndex].userMessages.get(discordUserID) + 1
+          messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, userCount)
+        } else {
+          messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, 1)
+        }
+      }
     }
+
     resolve()
   })
 }
@@ -85,34 +90,38 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       */
 
       // Count the number of messages for each team member in each team channel
-      let teamNo = 1
+      let messageSummary = [] // Six sprints within any number of teams
+
       for (let channel of teamChannels) {
-        console.log('channel.name: ', channel.name)
         if (channel.type !== 'category') {
-          // Retrieve all messages in the channel
-          // TODO: Generate the following in summarizeMessages instead of here
-          messageSummary[teamNo] = { 
-            voyage: VOYAGE,
-            sprintStartDt: null,
-            sprintEndDt: null,
-            tierName: getTierName(channel.name),
-            teamNo: getTeamNo(channel.name),
-            userMessages: new Map()
+          // Retrieve all messages in the channel. Start by creating a template
+          // entry for each sprint for the current team that will be updated as
+          // incoming messages are tallied.
+          let teamNo = getTeamNo(channel.name) - 1
+          messageSummary.push([])
+          for (let sprintNo = 0; sprintNo < 6; ++sprintNo) {
+            messageSummary[teamNo].push({ 
+              voyage: VOYAGE,
+              teamNo: teamNo+1,
+              sprintNo: sprintNo+1,
+              sprintStartDt: null,
+              sprintEndDt: null,
+              tierName: getTierName(channel.name),
+              userMessages: new Map()
+            })
+            console.log('messageSummary init: ', messageSummary[teamNo][sprintNo])
           }
 
-          await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo, summarizeMessages)
-
-          console.log('messageSummary: ', messageSummary)
+          await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo+1, summarizeMessages, messageSummary)
 
           // Update the progress bar
           //progressBars[0].increment(1)
           //progressBars[teamNo].increment(1)
-          ++teamNo 
         }
       }
 
       // Add or update matching rows in Airtable
-
+      console.log('messageSummary: ', messageSummary)
 
       // Terminate processing
       //overallProgress.stop()
