@@ -1,4 +1,4 @@
-import getVoyageSchedule from './Airtable.js'
+import { addUpdateTeamMetrics, getVoyageSchedule } from './Airtable.js'
 import Discord from './Discord.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
@@ -109,10 +109,10 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
               tierName: getTierName(channel.name),
               userMessages: new Map()
             })
-            console.log('messageSummary init: ', messageSummary[teamNo][sprintNo])
           }
 
           await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo+1, summarizeMessages, messageSummary)
+          console.log('Message fetch completed')
 
           // Update the progress bar
           //progressBars[0].increment(1)
@@ -122,6 +122,14 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
 
       // Add or update matching rows in Airtable
       console.log('messageSummary: ', messageSummary)
+      for (let team of messageSummary) {
+        for (let sprint of team) {
+          const result = await addUpdateTeamMetrics(sprint.voyage, 
+            sprint.teamNo, sprint.tierName, 
+            sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
+            sprint.discordID, sprint.userMessages)
+        }
+      }
 
       // Terminate processing
       //overallProgress.stop()
