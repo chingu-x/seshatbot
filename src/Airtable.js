@@ -40,16 +40,14 @@ const calculateSprints = (voyageStartDt, voyageEndDt) => {
 // sprint number, & Discord user name
 const getVoyageMetric = async (voyageName, teamNo, tierName, sprintNo, discordID) => {
   return new Promise(async (resolve, reject) => {
+    console.log('getVoyageMetric - voyageName: ', voyageName)
     let atVoyageName, atTeamNo, atTierName, atSprintNo, atDiscordID, atMsgCount
-    console.log('...Entered getVoyageMetric')
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
-    const filter = "{Voyage Name} = \"" + voyageName.toUpperCase() + "\"";
+    const filter = "{Name} = \"" + voyageName.toUpperCase() + "\""
 
     base('Voyage Metrics').select({ 
-      fields: ['Voyage Name', 'Team No.', 'Team Tier', 'Sprint No', 
-        'Sprint Start Dt', 'Sprint End Dt', 'Discord ID', 'Team Channel Msg Count'],
       filterByFormula: filter,
-      view: 'Schedules' 
+      view: 'Voyage Metrics' 
     })
     .firstPage((err, records) => {
       if (err) { 
@@ -58,25 +56,21 @@ const getVoyageMetric = async (voyageName, teamNo, tierName, sprintNo, discordID
         reject(err) 
       }
 
-      atVoyageName = records[0].get('Voyage Name')
+      atVoyageName = records[0].get('Name')
       atTeamNo = records[0].get('Team No')
       atTierName = records[0].get('Tier Name')
       atSprintNo = records[0].get('Sprint No')
       atDiscordID = records[0].get('Discord ID')
       atMsgCount = records[0].get('Team Channel Msg Count')
 
-    })
-    console.log(`Voyage: ${ atVoyageName } TeamNo: ${ atTeamNo } \
-    Tier: ${ atTierName } Sprint: ${ atSprintNo } \
-    DiscordID: ${ atDiscordID } MsgCount: ${ atMsgCount }`)
-
-    resolve({
-      atVoyageName,
-      atTeamNo,
-      atTierName,
-      atSprintNo,
-      atDiscordID,
-      atMsgCount
+      resolve({
+        atVoyageName,
+        atTeamNo,
+        atTierName,
+        atSprintNo,
+        atDiscordID,
+        atMsgCount
+      })
     })
   })
 }
@@ -85,7 +79,7 @@ const getVoyageMetric = async (voyageName, teamNo, tierName, sprintNo, discordID
 const getVoyageSchedule = async (voyageName, timestamp) => {
   return new Promise(async (resolve, reject) => {
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
-    const filter = "{Name} = \"" + voyageName.toUpperCase() + "\"";
+    const filter = "{Name} = \"" + voyageName.toUpperCase() + "\""
 
     base('Schedules').select({ 
       fields: ['Name', 'Type', 'Start Date', 'End Date'],
@@ -110,6 +104,7 @@ const getVoyageSchedule = async (voyageName, timestamp) => {
         sprintSchedule: sprintSchedule
       })
     })
+
   })
 }
 

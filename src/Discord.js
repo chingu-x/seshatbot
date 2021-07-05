@@ -37,11 +37,11 @@ export default class Discord {
             isMoreMessages = false // Stop fetching messages for this channel
           }
         } while (isMoreMessages)
+        return resolve()
       } catch (err) {
         console.log(err)
         return reject(`Error retrieving messages for channel: ${channel.name} ${err}`)
       }
-      return resolve()
     })
   }
 

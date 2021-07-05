@@ -47,21 +47,27 @@ const summarizeMessages = async (voyageName, teamNo, message, messageSummary) =>
     const schedule = await getVoyageSchedule(voyageName, message.createdTimestamp)
     const { sprintNo, sprintStartDt, sprintEndDt } = getSprintInfo(
       schedule.sprintSchedule, message.createdTimestamp)
-    messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
-    messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
 
-    for (let sprintIndex = 0; sprintIndex < 6; ++sprintIndex) {
-      if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
-        if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserID)) {
-          let userCount = messageSummary[teamNo, sprintIndex].userMessages.get(discordUserID) + 1
-          messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, userCount)
-        } else {
-          messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, 1)
+    try {
+      messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
+      messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
+
+      for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
+        if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
+          if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserID)) {
+            let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserID) + 1
+            messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, userCount)
+          } else {
+            messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, 1)
+          }
         }
       }
+      resolve()
+    } catch (err) {
+      console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo } messageSummary: `, messageSummary)
+      console.log(err)
+      reject(err)
     }
-
-    resolve()
   })
 }
 
@@ -90,20 +96,20 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       */
 
       // Count the number of messages for each team member in each team channel
-      let messageSummary = [] // Six sprints within any number of teams
+      let messageSummary = [[]] // Six sprints within any number of teams
 
       for (let channel of teamChannels) {
         if (channel.type !== 'category') {
           // Retrieve all messages in the channel. Start by creating a template
           // entry for each sprint for the current team that will be updated as
           // incoming messages are tallied.
-          let teamNo = getTeamNo(channel.name) - 1
+          let teamNo = getTeamNo(channel.name)
           messageSummary.push([])
-          for (let sprintNo = 0; sprintNo < 6; ++sprintNo) {
+          for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             messageSummary[teamNo].push({ 
               voyage: VOYAGE,
-              teamNo: teamNo+1,
-              sprintNo: sprintNo+1,
+              teamNo: teamNo,
+              sprintNo: sprintNo,
               sprintStartDt: null,
               sprintEndDt: null,
               tierName: getTierName(channel.name),
@@ -111,7 +117,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
             })
           }
 
-          await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo+1, summarizeMessages, messageSummary)
+          await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo, summarizeMessages, messageSummary)
           console.log('Message fetch completed')
 
           // Update the progress bar
@@ -121,9 +127,10 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       }
 
       // Add or update matching rows in Airtable
-      console.log('messageSummary: ', messageSummary)
+      //console.log('messageSummary: ', messageSummary)
       for (let team of messageSummary) {
         for (let sprint of team) {
+          //console.log('sprint: ', sprint)
           const result = await addUpdateTeamMetrics(sprint.voyage, 
             sprint.teamNo, sprint.tierName, 
             sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
