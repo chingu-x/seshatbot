@@ -126,7 +126,6 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       }
 
       // Add or update matching rows in Airtable
-      console.log('messageSummary: ', messageSummary)
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordID, messageCount] of sprint.userMessages) {          
