@@ -96,7 +96,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       */
 
       // Count the number of messages for each team member in each team channel
-      let messageSummary = [[]] // Six sprints within any number of teams
+      let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
 
       for (let channel of teamChannels) {
         if (channel.type !== 'category') {
@@ -118,7 +118,6 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
           }
 
           await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo, summarizeMessages, messageSummary)
-          console.log('Message fetch completed')
 
           // Update the progress bar
           //progressBars[0].increment(1)
@@ -127,14 +126,17 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       }
 
       // Add or update matching rows in Airtable
-      //console.log('messageSummary: ', messageSummary)
+      console.log('messageSummary: ', messageSummary)
       for (let team of messageSummary) {
         for (let sprint of team) {
-          //console.log('sprint: ', sprint)
-          const result = await addUpdateTeamMetrics(sprint.voyage, 
-            sprint.teamNo, sprint.tierName, 
-            sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
-            sprint.discordID, sprint.userMessages)
+          for (let [discordID, messageCount] of sprint.userMessages) {          
+            console.log(`extractDiscordMessages - before addUpdateTeamMetrics - \
+              voyage: ${ sprint.voyage } teamNo: ${ sprint.teamNo } tierName: ${ sprint.tierName } sprintNo: ${ sprint.sprintNo } sprintStartDt: ${ sprint.sprintStartDt } sprintEndDt: ${ sprint.sprintEndDt } discordID: ${ discordID } count: ${ messageCount }`)
+            const result = await addUpdateTeamMetrics(sprint.voyage, 
+              sprint.teamNo, sprint.tierName, 
+              sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
+              discordID, messageCount)
+          }
         }
       }
 

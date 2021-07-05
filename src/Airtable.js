@@ -40,7 +40,6 @@ const calculateSprints = (voyageStartDt, voyageEndDt) => {
 // sprint number, & Discord user name
 const getVoyageMetric = async (voyageName, teamNo, tierName, sprintNo, discordID) => {
   return new Promise(async (resolve, reject) => {
-    console.log('getVoyageMetric - voyageName: ', voyageName)
     let atVoyageName, atTeamNo, atTierName, atSprintNo, atDiscordID, atMsgCount
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
     const filter = "{Name} = \"" + voyageName.toUpperCase() + "\""
@@ -114,11 +113,9 @@ const addUpdateTeamMetrics = async (voyageName, teamNo, tierName,
   sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount) => {
   
   return new Promise(async (resolve, reject) => {
-    console.log('Entered addUpdateTeamMetrics')
     // If a matching row is found in the table replace it's message count with
     // the new one
     const result = await getVoyageMetric(voyageName, teamNo, tierName, sprintNo, discordID)
-    console.log('result: ', result)
 
     // If no matching row is found add a new one
 
