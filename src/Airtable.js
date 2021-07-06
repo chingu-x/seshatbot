@@ -104,13 +104,14 @@ const getVoyageMetric = async (voyageName, teamNo, sprintNo, discordID) => {
   })
 }
 
-// Retrieve Voyage Metrics for the matching voyage name, team number, 
-// sprint number, & Discord user name
-const addTeamMetric = async (voyageName, teamNo, tierName, 
+// Add a new Voyage Metric row to AirTable
+const addVoyageMetric = async (voyageName, teamNo, tierName, 
   sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount) => {
 
   return new Promise(async (resolve, reject) => {
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+
+    console.log('addVoyageMetric entered')
 
     const startDt = new Date(sprintStartDt)
     const endDt = new Date(sprintEndDt)
@@ -136,27 +137,64 @@ const addTeamMetric = async (voyageName, teamNo, tierName,
   })
 }
 
+// Update an exising Voyage Metric row to AirTable
+const updateVoyageMetric = async (recordID, voyageName, teamNo, tierName, 
+  sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount) => {
+
+  return new Promise(async (resolve, reject) => {
+    const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+
+    console.log('updateVoyageMetric - recordID: ', recordID)
+
+    const startDt = new Date(sprintStartDt)
+    const endDt = new Date(sprintEndDt)
+    base('Voyage Metrics').update([
+      {
+        "id": recordID,
+        "fields": {
+          "Name": voyageName,
+          "Sprint No": sprintNo.toString(),
+          "Sprint Start Dt": startDt.toISOString().substring(0,10),
+          "Sprint End Dt": endDt.toISOString().substring(0,10),
+          "Tier Name": tierName,
+          "Team No": teamNo,
+          "Team Channel Msg Count": messageCount,
+          "Discord ID": discordID
+        }
+      }
+    ], (err, records) => {
+      if (err) {
+        console.error('Error:', err)
+        reject(err)
+      }
+      console.log('records: ', records)
+      resolve(records[0].id)
+    })
+  })
+}
+
 // Add or update metrics for a team member. Individual metrics are identified
 // by voyage name, team number, tier name, sprint number, & the Discord user name
 const addUpdateTeamMetrics = async (voyageName, teamNo, tierName, 
   sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount) => {
   
   return new Promise(async (resolve, reject) => {
-    let result = await getVoyageMetric(voyageName, teamNo, sprintNo, discordID)
-    console.log(`addUpdateTeamMetrics - result: `, result)
-    // If no matching row is found in the table add a new row
-    if (result === null) {
-      console.log('addUpdateTeamMetrics - add new row')
-      result = await addTeamMetric(voyageName, teamNo, tierName, 
-        sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount)
-      resolve(result)
-    }
+    let recordID = await getVoyageMetric(voyageName, teamNo, sprintNo, discordID)
+    console.log(`addUpdateTeamMetrics - recordID: `, recordID)
 
-    // If a matching row is found update it with the message count
-    console.log('addUpdateTeamMetrics - update row')
-    result = await updateTeamMetric(voyageName, teamNo, tierName, 
-      sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount)
-    resolve(result)
+    // If no matching row is found in the table add a new row
+    if (recordID === null) {
+      console.log('addUpdateTeamMetrics - add new row')
+      const addResult = await addVoyageMetric(voyageName, teamNo, tierName, 
+        sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount)
+      resolve(addResult)
+    } else {
+      // If a matching row is found update it with the message count
+      console.log('addUpdateTeamMetrics - update row')
+      const updateResult = await updateVoyageMetric(recordID, voyageName, teamNo, tierName, 
+        sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount)
+      resolve(updateResult)
+    }
   })
 }
 
