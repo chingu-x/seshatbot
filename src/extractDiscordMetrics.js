@@ -87,13 +87,11 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       const channelNames = [category.name]
 
       teamChannels.forEach(channel => channelNames.push(channel.name))
-      /*
       let { overallProgress, progressBars } = initializeProgressBars(
         category.name,
         channelNames, 
         { includeDetailBars: true, includeCategory: true }
       )
-      */
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
@@ -118,36 +116,35 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
           }
 
           await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo, summarizeMessages, messageSummary)
-
-          // Update the progress bar
-          //progressBars[0].increment(1)
-          //progressBars[teamNo].increment(1)
         }
       }
 
       // Add or update matching rows in Airtable
+      let teamNo = 0
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordID, messageCount] of sprint.userMessages) {          
-            console.log(`extractDiscordMessages - before addUpdateTeamMetrics - \
-              voyage: ${ sprint.voyage } teamNo: ${ sprint.teamNo } tierName: ${ sprint.tierName } sprintNo: ${ sprint.sprintNo } sprintStartDt: ${ sprint.sprintStartDt } sprintEndDt: ${ sprint.sprintEndDt } discordID: ${ discordID } count: ${ messageCount }`)
             const result = await addUpdateTeamMetrics(sprint.voyage, 
               sprint.teamNo, sprint.tierName, 
               sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
               discordID, messageCount)
           }
         }
+
+        // Update the progress bar
+        progressBars[0].increment(1)
+        progressBars[teamNo].increment(1)
+        teamNo += 1
       }
 
       // Terminate processing
-      //overallProgress.stop()
-      //console.log('\nmessageSummary: ', messageSummary)
+      overallProgress.stop()
       discordIntf.commandResolve('done')
     })
   }
   catch(err) {
     console.log(err)
-    //overallProgress.stop()
+    overallProgress.stop()
     await client.destroy() // Terminate this Discord bot
     discordIntf.commandReject('fail')
   }
@@ -160,7 +157,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
   catch (err) {
     console.error(`Error logging into Discord. Token: ${ process.env.DISCORD_TOKEN }`)
     console.error(err)
-    //overallProgress.stop()
+    overallProgress.stop()
     discordIntf.commandReject('fail')
   }
 }
