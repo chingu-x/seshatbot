@@ -53,13 +53,21 @@ export default class Discord {
     )
 
     // Get the team channel names in this category. 
-    let teamChannels = category.children.reduce((channels, channel) => {
+    let teamChannels = category.children
+    .reduce((channels, channel) => {
       const result = channel.name.match(channelRegex)
       if (result !== null) {
         channels.push(channel)
       }
       return channels
     }, [])
+    .sort((a, b) => {
+      if (a.name >= b.name) {
+        return -1
+      } else {
+        return 1
+      }
+    })
     
     return {category, teamChannels }
   }

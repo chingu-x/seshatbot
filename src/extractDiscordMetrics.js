@@ -4,10 +4,11 @@ import initializeProgressBars from './initializeProgressBars.js'
 
 const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0
+  let startDt, endDt = null
   for (let sprint of sprintSchedule) {
     sprintNo = sprintNo + 1
-    const startDt = new Date(sprint.startDt)
-    const endDt = new Date(sprint.endDt)
+    startDt = new Date(sprint.startDt)
+    endDt = new Date(sprint.endDt)
     if (messageTimestamp >= startDt && messageTimestamp <= endDt) {
       return { 
         sprintNo: sprintNo,
@@ -16,7 +17,7 @@ const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
       }
     }
   }
-  throw new Error('Message timestamp outside Voyage boundaries')
+  throw new Error(`Message timestamp outside Voyage. messageTimestamp: ${ messageTimestamp } startDt: ${ startDt.valueOf() } endDt: ${ endDt.valueOf() }`)
 }
 
 // Extract the tier from the Discord channel name. Channel names must be
@@ -97,6 +98,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
 
       for (let channel of teamChannels) {
+        console.log(`channel.name: ${ channel.name } type: ${ channel.type }`)
         if (channel.type !== 'category') {
           // Retrieve all messages in the channel. Start by creating a template
           // entry for each sprint for the current team that will be updated as
