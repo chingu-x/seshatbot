@@ -37,7 +37,7 @@ const calculateSprints = (voyageStartDt, voyageEndDt) => {
 }
 
 // Retrieve the schedule for the specified Voyage
-const getVoyageSchedule = async (voyageName, timestamp) => {
+const getVoyageSchedule = async (voyageName) => {
   return new Promise(async (resolve, reject) => {
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
     const filter = "{Name} = \"" + voyageName.toUpperCase() + "\""
@@ -57,6 +57,8 @@ const getVoyageSchedule = async (voyageName, timestamp) => {
       const voyageStartDt = records[0].get('Start Date')
       const voyageEndDt = records[0].get('End Date')
       const sprintSchedule = calculateSprints(voyageStartDt, voyageEndDt)
+
+      // console.log(`\ngetVoyageSchedule - voyageName: ${ voyageName } voyageStartDt: ${ voyageStartDt } voyageEndDt: ${ voyageEndDt } sprintSchedule: `, sprintSchedule)
 
       resolve({
         voyageName: records[0].get('Name'),

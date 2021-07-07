@@ -46,11 +46,11 @@ export default class Discord {
   }
 
   // Get the team channels for the specified Voyage
-  getChannelNames(guild, categoryRegex, channelRegex) {
+  getChannelNames(guild, voyageName, categoryRegex, channelRegex) {
     // Locate the owning category name. 
-    const category = guild.channels.cache.find(category => 
-      category.type === 'category' && category.name.match(categoryRegex)
-    )
+    const category = guild.channels.cache.find(category => {
+      return category.name.toUpperCase().substring(0,3) === voyageName.toUpperCase() && category.type === 'category' && category.name.match(categoryRegex)
+    })
 
     // Get the team channel names in this category. 
     let teamChannels = category.children
@@ -62,10 +62,11 @@ export default class Discord {
       return channels
     }, [])
     .sort((a, b) => {
-      if (a.name >= b.name) {
-        return -1
-      } else {
+      // Sort in ascending team number sequence
+      if (parseInt(a.name.substr(a.name.length - 2)) >= parseInt(b.name.substr(b.name.length - 2))) {
         return 1
+      } else {
+        return -1
       }
     })
     

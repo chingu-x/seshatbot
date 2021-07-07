@@ -4,12 +4,13 @@ import initializeProgressBars from './initializeProgressBars.js'
 
 const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0
-  let startDt, endDt = null
+  let timestamp, sprintStartDt, sprintEndDt = null
   for (let sprint of sprintSchedule) {
     sprintNo = sprintNo + 1
-    startDt = new Date(sprint.startDt)
-    endDt = new Date(sprint.endDt)
-    if (messageTimestamp >= startDt && messageTimestamp <= endDt) {
+    timestamp = new Date(messageTimestamp).toISOString().substring(0,10)
+    sprintStartDt = new Date(sprint.startDt).toISOString().substring(0,10)
+    sprintEndDt = new Date(sprint.endDt).toISOString().substring(0,10)
+    if (timestamp >= sprintStartDt && timestamp <= sprintEndDt) {
       return { 
         sprintNo: sprintNo,
         sprintStartDt: sprint.startDt,
@@ -17,7 +18,7 @@ const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
       }
     }
   }
-  throw new Error(`Message timestamp outside Voyage. messageTimestamp: ${ messageTimestamp } startDt: ${ startDt.valueOf() } endDt: ${ endDt.valueOf() }`)
+  return null // Message posted outside Voyage start/end dates
 }
 
 // Extract the tier from the Discord channel name. Channel names must be
@@ -45,29 +46,35 @@ const getTeamNo = (channelName) => {
 const summarizeMessages = async (voyageName, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
-    const schedule = await getVoyageSchedule(voyageName, message.createdTimestamp)
-    const { sprintNo, sprintStartDt, sprintEndDt } = getSprintInfo(
+    const schedule = await getVoyageSchedule(voyageName)
+    const messageInfo = getSprintInfo(
       schedule.sprintSchedule, message.createdTimestamp)
+    if (messageInfo !== null) {
+      /*
+      const { sprintNo, sprintStartDt, sprintEndDt } = getSprintInfo(
+        schedule.sprintSchedule, message.createdTimestamp)
+      */
 
-    try {
-      messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
-      messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
+      try {
+        messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
+        messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
 
-      for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
-        if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
-          if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserID)) {
-            let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserID) + 1
-            messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, userCount)
-          } else {
-            messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, 1)
+        for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
+          if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
+            if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserID)) {
+              let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserID) + 1
+              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, userCount)
+            } else {
+              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, 1)
+            }
           }
         }
+        resolve()
+      } catch (err) {
+        console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo } messageSummary: `, messageSummary)
+        console.log(err)
+        reject(err)
       }
-      resolve()
-    } catch (err) {
-      console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo } messageSummary: `, messageSummary)
-      console.log(err)
-      reject(err)
     }
   })
 }
@@ -82,7 +89,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
   try {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
-      const { category, teamChannels } = discordIntf.getChannelNames(guild, CATEGORY, CHANNEL)
+      const { category, teamChannels } = discordIntf.getChannelNames(guild, VOYAGE, CATEGORY, CHANNEL)
 
       // Set up the progress bars
       const channelNames = [category.name]
@@ -98,7 +105,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
 
       for (let channel of teamChannels) {
-        console.log(`channel.name: ${ channel.name } type: ${ channel.type }`)
+        //console.log(`channel.name: ${ channel.name } type: ${ channel.type } teamChannels: `, teamChannels)
         if (channel.type !== 'category') {
           // Retrieve all messages in the channel. Start by creating a template
           // entry for each sprint for the current team that will be updated as
@@ -106,6 +113,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
           let teamNo = getTeamNo(channel.name)
           messageSummary.push([])
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
+            //console.log(`teamNo: ${ teamNo } sprintNo: ${ sprintNo } messageSummary[${ teamNo }]: `, messageSummary[teamNo])
             messageSummary[teamNo].push({ 
               voyage: VOYAGE,
               teamNo: teamNo,
