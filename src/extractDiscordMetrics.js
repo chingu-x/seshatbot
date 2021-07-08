@@ -1,17 +1,14 @@
-import { addUpdateTeamMetrics } from './Airtable.js'
 import Discord from './Discord.js'
+import { addUpdateTeamMetrics } from './Airtable.js'
 import { getVoyageSchedule } from './Airtable.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0
-  let timestamp, sprintStartDt, sprintEndDt = null
   for (let sprint of sprintSchedule) {
     sprintNo = sprintNo + 1
-    timestamp = new Date(messageTimestamp).toISOString().substring(0,10)
-    sprintStartDt = new Date(sprint.startDt).toISOString().substring(0,10)
-    sprintEndDt = new Date(sprint.endDt).toISOString().substring(0,10)
-    if (timestamp >= sprintStartDt && timestamp <= sprintEndDt) {
+    const timestamp = new Date(messageTimestamp).toISOString().substring(0,10)
+    if (timestamp >= sprint.startDt && timestamp <= sprint.endDt) {
       return { 
         sprintNo: sprintNo,
         sprintStartDt: sprint.startDt,
@@ -102,7 +99,6 @@ const extractDiscordMetrics = async (environment) => {
       const schedule = await getVoyageSchedule(VOYAGE)
 
       for (let channel of teamChannels) {
-        //console.log(`channel.name: ${ channel.name } type: ${ channel.type } teamChannels: `, teamChannels)
         if (channel.type !== 'category') {
           // Retrieve all messages in the channel. Start by creating a template
           // entry for each sprint for the current team that will be updated as

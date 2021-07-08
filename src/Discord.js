@@ -28,7 +28,9 @@ export default class Discord {
       let fetchOptions = { limit: 100 }
       try {
         do {
+          console.log('Starting fetch')
           const messages = await channel.messages.fetch(fetchOptions)
+          console.log('...fetch completed')
           if (messages.size > 0) {
             for (let [messageID, message] of messages) {
               await callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
@@ -38,10 +40,10 @@ export default class Discord {
             isMoreMessages = false // Stop fetching messages for this channel
           }
         } while (isMoreMessages)
-        return resolve()
+        resolve()
       } catch (err) {
         console.log(err)
-        return reject(`Error retrieving messages for channel: ${channel.name} ${err}`)
+        reject(`Error retrieving messages for channel: ${channel.name} ${err}`)
       }
     })
   }
@@ -64,11 +66,9 @@ export default class Discord {
     }, [])
     .sort((a, b) => {
       // Sort in ascending team number sequence
-      if (parseInt(a.name.substr(a.name.length - 2)) >= parseInt(b.name.substr(b.name.length - 2))) {
-        return 1
-      } else {
-        return -1
-      }
+      return parseInt(a.name.substr(a.name.length - 2)) >= parseInt(b.name.substr(b.name.length - 2)) 
+        ? 1 
+        : -1
     })
     
     return {category, teamChannels }

@@ -22,14 +22,14 @@ const calculateSprints = (voyageStartDt, voyageEndDt) => {
   let sprint = { 
     no: 0,
     startDt: startDt.toString(),
-    endDt: endDt.toString()
+    endDt: endDt.toString(),
   }
   while (sprint.no < 6) {
     sprint.no = sprint.no + 1
     startDt.setDate(startDt.getDate() + 7)
-    sprint.startDt = startDt.toString()
+    sprint.startDt = startDt.toISOString().substring(0,10)
     endDt.setDate(endDt.getDate() + 7)
-    sprint.endDt = endDt.toString()
+    sprint.endDt = endDt.toISOString().substring(0,10)
     sprintSchedule.push(Object.assign({}, sprint))
   }
 

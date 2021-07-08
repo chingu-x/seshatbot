@@ -6,7 +6,7 @@ const initializeProgressBars = (voyageName, teamChannelNames, { includeDetailBar
   let progressBars = []
 
   let overallProgress = new cliProgress.MultiBar({
-    format: '{description} |' + _colors.brightGreen('{bar}') + '| {value}/{total} | {percentage}% | {duration} secs.',
+    format: '{description} |' + _colors.brightGreen('{bar}') + '| {value}/{total} | {percentage}% | {duration} secs',
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
     clearOnComplete: false,
