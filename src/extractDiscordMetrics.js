@@ -41,8 +41,8 @@ const getTeamNo = (channelName) => {
 
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.
-const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
-  return new Promise(async (resolve, reject) => {
+const summarizeMessages = (schedule, teamNo, message, messageSummary) => {
+  //return new Promise(async (resolve, reject) => {
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
     const sprintInfo = getSprintInfo(
       schedule.sprintSchedule, message.createdTimestamp)
@@ -61,14 +61,15 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
             }
           }
         }
-        resolve()
+        //resolve()
+        return
       } catch (err) {
         console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo } messageSummary: `, messageSummary)
         console.log(err)
-        reject(err)
+        //reject(err)
       }
     }
-  })
+  //})
 }
 
 // Extract team message metrics from the Discord channels
