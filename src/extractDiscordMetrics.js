@@ -1,8 +1,9 @@
-import { addUpdateTeamMetrics, getVoyageSchedule } from './Airtable.js'
+import { addUpdateTeamMetrics } from './Airtable.js'
 import Discord from './Discord.js'
+import { getVoyageSchedule } from './Airtable.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
-const getSprintInfo =  (sprintSchedule, messageTimestamp) => {
+const getSprintInfo = (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0
   let timestamp, sprintStartDt, sprintEndDt = null
   for (let sprint of sprintSchedule) {
@@ -43,22 +44,16 @@ const getTeamNo = (channelName) => {
 
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.
-const summarizeMessages = async (voyageName, teamNo, message, messageSummary) => {
+const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
-    const schedule = await getVoyageSchedule(voyageName)
-    const messageInfo = getSprintInfo(
+    const sprintInfo = getSprintInfo(
       schedule.sprintSchedule, message.createdTimestamp)
-    if (messageInfo !== null) {
-      /*
-      const { sprintNo, sprintStartDt, sprintEndDt } = getSprintInfo(
-        schedule.sprintSchedule, message.createdTimestamp)
-      */
-
+    if (sprintInfo !== null) {
+      const { sprintNo, sprintStartDt, sprintEndDt } = sprintInfo
       try {
         messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
         messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
-
         for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
           if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
             if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserID)) {
@@ -80,8 +75,9 @@ const summarizeMessages = async (voyageName, teamNo, message, messageSummary) =>
 }
 
 // Extract team message metrics from the Discord channels
-const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL) => {
+const extractDiscordMetrics = async (environment) => {
   const discordIntf = new Discord(environment)
+  const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
   const client = discordIntf.getDiscordClient()
   const guild = await client.guilds.fetch(GUILD_ID)
@@ -103,6 +99,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
+      const schedule = await getVoyageSchedule(VOYAGE)
 
       for (let channel of teamChannels) {
         //console.log(`channel.name: ${ channel.name } type: ${ channel.type } teamChannels: `, teamChannels)
@@ -113,7 +110,6 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
           let teamNo = getTeamNo(channel.name)
           messageSummary.push([])
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
-            //console.log(`teamNo: ${ teamNo } sprintNo: ${ sprintNo } messageSummary[${ teamNo }]: `, messageSummary[teamNo])
             messageSummary[teamNo].push({ 
               voyage: VOYAGE,
               teamNo: teamNo,
@@ -125,7 +121,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
             })
           }
 
-          await discordIntf.fetchAllMessages(channel, VOYAGE, teamNo, summarizeMessages, messageSummary)
+          await discordIntf.fetchAllMessages(channel, schedule, teamNo, summarizeMessages, messageSummary)
         }
       }
 
@@ -165,7 +161,7 @@ const extractDiscordMetrics = async (environment, GUILD_ID, DISCORD_TOKEN, VOYAG
     return discordIntf.commandPromise
   }
   catch (err) {
-    console.error(`Error logging into Discord. Token: ${ process.env.DISCORD_TOKEN }`)
+    console.error(`Error logging into Discord. Token: ${ DISCORD_TOKEN }`)
     console.error(err)
     overallProgress.stop()
     discordIntf.commandReject('fail')

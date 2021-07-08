@@ -1,5 +1,6 @@
 import DiscordJS from 'discord.js'
 
+
 export default class Discord {
   constructor(environment) {
     this.environment = environment
@@ -21,7 +22,7 @@ export default class Discord {
   // Fetch all messages from the selected Discord team channels.
   // Note that the `callback` routine is invoked for each message to
   // accumulate any desired metrics.
-  async fetchAllMessages(channel, voyageName, teamNo, callback, messageSummary) {
+  async fetchAllMessages(channel, schedule, teamNo, callback, messageSummary) {
     return new Promise(async (resolve, reject) => {
       let isMoreMessages = true
       let fetchOptions = { limit: 100 }
@@ -30,7 +31,7 @@ export default class Discord {
           const messages = await channel.messages.fetch(fetchOptions)
           if (messages.size > 0) {
             for (let [messageID, message] of messages) {
-              await callback(voyageName, teamNo, message, messageSummary) // Invoke the callback function to process messages
+              await callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
             }
             fetchOptions = { limit: 100, before: messages.last().id }
           } else {
