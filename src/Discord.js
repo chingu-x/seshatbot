@@ -22,28 +22,25 @@ export default class Discord {
   // Note that the `callback` routine is invoked for each message to
   // accumulate any desired metrics.
   async fetchAllMessages(channel, schedule, teamNo, callback, messageSummary) {
-    // return new Promise(async (resolve, reject) => {
-      let isMoreMessages = true
-      let fetchOptions = { limit: 100 }
-      try {
-        do {
-          const messages = await channel.messages.fetch(fetchOptions)
-          if (messages.size > 0) {
-            for (let [messageID, message] of messages) {
-              callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
-            }
-            fetchOptions = { limit: 100, before: messages.last().id }
-          } else {
-            isMoreMessages = false // Stop fetching messages for this channel
+    let isMoreMessages = true
+    let fetchOptions = { limit: 100 }
+    try {
+      do {
+        const messages = await channel.messages.fetch(fetchOptions)
+        if (messages.size > 0) {
+          for (let [messageID, message] of messages) {
+            callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
           }
-        } while (isMoreMessages)
-        //resolve()
-        return
-      } catch (err) {
-        console.log(err)
-        throw new Error(`Error retrieving messages for channel: ${channel.name} ${err}`)
-      }
-    //})
+          fetchOptions = { limit: 100, before: messages.last().id }
+        } else {
+          isMoreMessages = false // Stop fetching messages for this channel
+        }
+      } while (isMoreMessages)
+      return
+    } catch (err) {
+      console.log(err)
+      throw new Error(`Error retrieving messages for channel: ${channel.name} ${err}`)
+    }
   }
 
   // Get the team channels for the specified Voyage
