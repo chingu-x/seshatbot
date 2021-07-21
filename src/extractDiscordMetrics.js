@@ -26,6 +26,7 @@ const getTierName = (channelName) => {
     { animalName: 'Toucans', tierName: 'Tier 1'},
     { animalName: 'Geckos', tierName: 'Tier 2'},
     { animalName: 'Bears', tierName: 'Tier 3'},
+    { animalName: 'Chimeras', tierName: 'Tier n'},
   ]
   const tierNameIndex = tierNameTranslations.findIndex(translation => 
     translation.animalName.toLowerCase() === channelName.split('-')[0].toLowerCase()
