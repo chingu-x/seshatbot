@@ -22,13 +22,13 @@ const consoleLogOptions = (options) => {
 // Process a request to extract metrics for a specific Voyage from its
 // team channels and add/update them in Airtable
 program 
-  .command('extract')
+  .command('extract <source>')
   .description('Extract Voyage team metrics from team channels')
   .option('-d, --debug <debug>', 'Debug switch to add runtime info to console (YES/NO)')
   .option('-v, --voyage <name>', 'Voyage (e.g. "v31") to be selected')
   .option('-t, --category <regex-pattern>', 'Category name regex pattern (e.g. vd{2}-🔥$) to match on')
   .option('-c, --channel <regex-pattern>', 'Channel name regex pattern (e.g. [a-z]+-team-\d{2}$) to match on')
-  .action(async (options) => {
+  .action(async (source, options, command) => {
     environment.setOperationalVars({
       debug: options.debug,
       voyage: options.voyage,
@@ -44,7 +44,9 @@ program
     const { GUILD_ID, AIRTABLE_API_KEY, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
     
     try {
-      await extractDiscordMetrics(environment)
+      if (command._name === 'extract' && source.toLowerCase() === 'discord') {
+        await extractDiscordMetrics(environment)
+      }
       process.exit(0)
     }
     catch (err) {
