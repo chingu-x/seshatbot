@@ -20,7 +20,6 @@ const consoleLogOptions = (options) => {
     console.log('- firstDate: ', options.firstDate)
     console.log('- lastDate: ', options.lastDate)
     console.log('- intervalDays: ', options.intervalDays)
-    console.log('- startDay: ', options.startDay)
   }
 }
 
@@ -34,7 +33,6 @@ program
   .option('-f, --firstdate <isodate>', 'Starting date (e.g. 2021-06-27)')
   .option('-l, --lastdate <isodate>', 'Ending date (e.g. 2021-07-03)')
   .option('-i, --intervaldays <nodays>', 'Collection interval days (e.g. 7 for one week)')
-  .option('-n, --dow <dayofweek>', 'Starting day of the week (e.g. "SUNDAY")')
   .action(async (source, options, command) => {
     environment.setOperationalVars({
       debug: options.debug,
@@ -42,7 +40,6 @@ program
       firstDate: options.firstDate,
       lastDate: options.lastDate,
       intervalDays: options.intervalDays,
-      startDay: options.startDay
     })
 
     debug = environment.isDebug()

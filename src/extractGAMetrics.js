@@ -56,7 +56,6 @@ const extractGAMetrics = async (environment) => {
     startDate = addDays(new Date(endDate.toISOString()), 1)
     endDate = addDays(new Date(startDate.toISOString()), parseInt(INTERVAL_DAYS)-1)
   } while (endDate <= lastDate)
-
 }
 
 export default extractGAMetrics

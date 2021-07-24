@@ -36,6 +36,10 @@ const calculateSprints = (voyageStartDt, voyageEndDt) => {
   return sprintSchedule
 }
 
+//--------------------------------
+// Voyage Schedule Table functions
+//--------------------------------
+
 // Retrieve the schedule for the specified Voyage
 const getVoyageSchedule = async (voyageName) => {
   return new Promise(async (resolve, reject) => {
@@ -70,6 +74,10 @@ const getVoyageSchedule = async (voyageName) => {
 
   })
 }
+
+//--------------------------------
+// Voyage Metrics Table functions
+//--------------------------------
 
 // Retrieve Voyage Metrics for the matching voyage name, team number, 
 // sprint number, & Discord user name
@@ -192,4 +200,29 @@ const addUpdateTeamMetrics = async (voyageName, teamNo, tierName,
   })
 }
 
-export { addUpdateTeamMetrics, getVoyageSchedule }
+//--------------------------------
+// Website Metrics Table functions
+//--------------------------------
+
+// Add or update website metrics for a date range. Individual metrics are 
+// identified by start and end calendar date
+const addUpdateWebsiteMetrics = async (metricStartDate, metricEndDate, pageVisitCount, applyClickCount, applicationFormCount) => {
+  
+  return new Promise(async (resolve, reject) => {
+    let recordID = await getWebsiteMetric(metricStartDate, metricEndDate)
+
+    // If no matching row is found in the table add a new row
+    if (recordID === null) {
+      const addResult = await addWebsiteMetric(metricStartDate, metricEndDate, 
+        pageVisitCount, applyClickCount, applicationFormCount)
+      resolve(addResult)
+    } else {
+      // If a matching row is found update it with the message count
+      const updateResult = await updateWebsiteMetric(recordID, metricStartDate, 
+        metricEndDate, pageVisitCount, applyClickCount, applicationFormCount)
+      resolve(updateResult)
+    }
+  })
+}
+
+export { addUpdateTeamMetrics, addUpdateWebsiteMetrics, getVoyageSchedule }
