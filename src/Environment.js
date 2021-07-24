@@ -17,7 +17,8 @@ export default class Environment {
     console.log('- VOYAGE: ', process.env.VOYAGE)
     console.log('- CATEGORY: ', process.env.CATEGORY)
     console.log('- CHANNEL: ', process.env.CHANNEL)
-    console.log('- START_DATE: ', process.env.START_DATE)
+    console.log('- FIRST_DATE: ', process.env.FIRST_DATE)
+    console.log('- LAST_DATE: ', process.env.LAST_DATE)
     console.log('- INTERVAL_DAYS: ', process.env.INTERVAL_DAYS)
     console.log('- START_DAY: ', process.env.START_DAY)
 
@@ -51,7 +52,7 @@ export default class Environment {
   setOperationalVars(options) {
     // Retrieve the current variable values from `.env` file
     let { DEBUG, GUILD_ID, AIRTABLE_API_KEY, AIRTABLE_BASE, DISCORD_TOKEN, 
-      VOYAGE, CATEGORY, CHANNEL, START_DATE, INTERVAL_DAYS, START_DAY} = process.env
+      VOYAGE, CATEGORY, CHANNEL, FIRST_DATE, LAST_DATE, INTERVAL_DAYS, START_DAY} = process.env
 
     // Initialize `operationalVars` allowing command line parameter values
     // to override `.env` parameters
@@ -64,7 +65,8 @@ export default class Environment {
     this.operationalVars.VOYAGE = options.voyage ? options.voyage : VOYAGE
     this.operationalVars.CATEGORY = CATEGORY
     this.operationalVars.CHANNEL = CHANNEL
-    this.operationalVars.START_DATE = options.startDate ? options.startDate : START_DATE
+    this.operationalVars.FIRST_DATE = options.firstDate ? options.firstDate : FIRST_DATE
+    this.operationalVars.LAST_DATE = options.lastDate ? options.lastDate : LAST_DATE
     this.operationalVars.START_DAY = options.startDay ? options.startDay : START_DAY
     this.operationalVars.INTERVAL_DAYS = options.intervalDays ? options.intervalDays : INTERVAL_DAYS
   }
