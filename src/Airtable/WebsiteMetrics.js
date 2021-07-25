@@ -3,14 +3,12 @@ import Airtable from 'airtable'
 // Retrieve Website Metrics for the matching start & end date range
 const getWebsiteMetric = async (metricStartDate, metricEndDate) => {
   return new Promise(async (resolve, reject) => {
-    console.log(`...getWebsiteMetric - metricStartDate: ${ metricStartDate.slice(0,10) } metricEndDate: ${ metricEndDate.slice(0,10) }`)
 
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
     const filter = "AND(" + 
-        "IS_SAME({Start date},\"" + metricStartDate.slice(0,10) + "\"), " + 
-        "IS_SAME({End date},\"" + metricEndDate.slice(0,10) + "\") " +
+        "IS_SAME({Start date},DATETIME_PARSE(\"" + metricStartDate.slice(0,10) + "\",\"YYYY-MM-DD\")), " + 
+        "IS_SAME({End date},DATETIME_PARSE(\"" + metricEndDate.slice(0,10) + "\",\"YYYY-MM-DD\")) " +
       ")"
-    console.log(`filter: ${ filter }`)
 
     base('Website Metrics').select({ 
       filterByFormula: filter,
@@ -25,14 +23,13 @@ const getWebsiteMetric = async (metricStartDate, metricEndDate) => {
 
       // If the record is found return its id. Otherwise, return null if it's
       // not found
-      if (records !== null && records !== undefined) {
+      if (records !== null || records !== undefined) {
         for (let i = 0; i < records.length; ++i) {
           if (records.length > 0) {
             resolve(records[i].id)
           }
         }
       }
-      console.log('...No matches found')
       resolve(null)
     })
   })
@@ -77,9 +74,9 @@ const updateWebsiteMetric = async (recordID, metricStartDate, metricEndDate,
         "fields": {
           "Start date": metricStartDate,
           "End date": metricEndDate,
-          "Page Visit Count": pageVisitCount,
-          "Apply Click Count": applyClickCount,
-          "Application Form Count": applicationFormCount
+          "Page Visit Count": parseInt(pageVisitCount),
+          "Apply Click Count": parseInt(applyClickCount),
+          "Application Form Count": parseInt(applicationFormCount)
         }
       }
     ], (err, records) => {

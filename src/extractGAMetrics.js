@@ -51,9 +51,7 @@ const extractGAMetrics = async (environment) => {
   let endDate = addDays(new Date(FIRST_DATE), 6)
 
   do {
-    console.log(`startDate: ${ startDate.toISOString() } endDate: ${ endDate.toISOString() }`)
     const { viewCount, applyCount } = await getMetricsByRange(startDate.toISOString().slice(0,10), endDate.toISOString().slice(0,10))
-    console.log(`...viewCount: ${ viewCount } applyCount: ${ applyCount }`) 
 
     const result = await addUpdateWebsiteMetrics(startDate.toISOString(), 
       endDate.toISOString(), viewCount, applyCount, 0
