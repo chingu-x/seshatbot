@@ -1,4 +1,5 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
+import { addUpdateWebsiteMetrics } from './Airtable/WebsiteMetrics.js'
 
 // Get Metrics from Google Analytics for a specific range of dates
 const getMetricsByRange = async (startDate, endDate) => {
@@ -53,6 +54,11 @@ const extractGAMetrics = async (environment) => {
     console.log(`startDate: ${ startDate.toISOString() } endDate: ${ endDate.toISOString() }`)
     const { viewCount, applyCount } = await getMetricsByRange(startDate.toISOString().slice(0,10), endDate.toISOString().slice(0,10))
     console.log(`...viewCount: ${ viewCount } applyCount: ${ applyCount }`) 
+
+    const result = await addUpdateWebsiteMetrics(startDate.toISOString(), 
+      endDate.toISOString(), viewCount, applyCount, 0
+    )
+
     startDate = addDays(new Date(endDate.toISOString()), 1)
     endDate = addDays(new Date(startDate.toISOString()), parseInt(INTERVAL_DAYS)-1)
   } while (endDate <= lastDate)

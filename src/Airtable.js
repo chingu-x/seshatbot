@@ -204,6 +204,69 @@ const addUpdateTeamMetrics = async (voyageName, teamNo, tierName,
 // Website Metrics Table functions
 //--------------------------------
 
+// Retrieve Website Metrics for the matching start & end date range
+const getVoyageMetric = async (metricStartDate, metricEndDate) => {
+  return new Promise(async (resolve, reject) => {
+    const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+    const filter = "AND(" + 
+        "{Start date} = \"" + metricStartDate + "\", " + 
+        "{End date} = \"" + metricEndDate + "\" "
+      ")"
+
+    base('Website Metrics').select({ 
+      filterByFormula: filter,
+      view: 'Website Metrics' 
+    })
+    .firstPage((err, records) => {
+      if (err) { 
+        console.error('filter: ', filter)
+        console.error(err) 
+        reject(err) 
+      }
+
+      // If the record is found return its id. Otherwise, return null if it's
+      // not found
+      for (let i = 0; i < records.length; ++i) {
+        if (records.length > 0) {
+          resolve(records[i].id)
+        }
+      }
+      resolve(null)
+    })
+  })
+}
+
+// Add a new Voyage Metric row to AirTable
+const addVoyageMetric = async (voyageName, teamNo, tierName, 
+  sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount) => {
+
+  return new Promise(async (resolve, reject) => {
+    const startDt = new Date(sprintStartDt)
+    const endDt = new Date(sprintEndDt)
+    const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+
+    base('Voyage Metrics').create([
+      {
+        "fields": {
+          "Name": voyageName.toUpperCase(),
+          "Sprint No": sprintNo.toString(),
+          "Sprint Start Dt": startDt.toISOString().substring(0,10),
+          "Sprint End Dt": endDt.toISOString().substring(0,10),
+          "Tier Name": tierName,
+          "Team No": teamNo,
+          "Team Channel Msg Count": messageCount,
+          "Discord ID": discordID
+      }
+    }], (err, records) => {
+      if (err) {
+        console.error(err)
+        reject(err)
+      }
+      resolve(records[0].id)
+    })
+  })
+}
+
 // Add or update website metrics for a date range. Individual metrics are 
 // identified by start and end calendar date
 const addUpdateWebsiteMetrics = async (metricStartDate, metricEndDate, pageVisitCount, applyClickCount, applicationFormCount) => {
