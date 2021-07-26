@@ -2,6 +2,7 @@ import { Command } from 'commander'
 const program = new Command();
 import Environment from './src/Environment.js'
 import extractDiscordMetrics from './src/extractDiscordMetrics.js'
+import extractGAMetrics from './src/extractGAMetrics.js'
 
 const environment = new Environment()
 environment.initDotEnv('./')
@@ -16,23 +17,29 @@ const consoleLogOptions = (options) => {
     console.log('- voyage: ', options.voyage)
     console.log('- category: ', options.category)
     console.log('- channel: ', options.channel)
+    console.log('- firstDate: ', options.firstDate)
+    console.log('- lastDate: ', options.lastDate)
+    console.log('- intervalDays: ', options.intervalDays)
   }
 }
 
 // Process a request to extract metrics for a specific Voyage from its
 // team channels and add/update them in Airtable
 program 
-  .command('extract')
+  .command('extract <source>')
   .description('Extract Voyage team metrics from team channels')
   .option('-d, --debug <debug>', 'Debug switch to add runtime info to console (YES/NO)')
   .option('-v, --voyage <name>', 'Voyage (e.g. "v31") to be selected')
-  .option('-t, --category <regex-pattern>', 'Category name regex pattern (e.g. vd{2}-🔥$) to match on')
-  .option('-c, --channel <regex-pattern>', 'Channel name regex pattern (e.g. [a-z]+-team-\d{2}$) to match on')
-  .action(async (options) => {
+  .option('-f, --firstdate <isodate>', 'Starting date (e.g. 2021-06-27)')
+  .option('-l, --lastdate <isodate>', 'Ending date (e.g. 2021-07-03)')
+  .option('-i, --intervaldays <nodays>', 'Collection interval days (e.g. 7 for one week)')
+  .action(async (source, options, command) => {
     environment.setOperationalVars({
       debug: options.debug,
       voyage: options.voyage,
-      channel: options.channel
+      firstDate: options.firstDate,
+      lastDate: options.lastDate,
+      intervalDays: options.intervalDays,
     })
 
     debug = environment.isDebug()
@@ -40,11 +47,14 @@ program
     debug && consoleLogOptions(options)
     debug && console.log('\noperationalVars: ', environment.getOperationalVars())
     debug && environment.logEnvVars()
-
-    const { GUILD_ID, AIRTABLE_API_KEY, DISCORD_TOKEN, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
     
     try {
-      await extractDiscordMetrics(environment)
+      if (command._name === 'extract' && source.toLowerCase() === 'discord') {
+        await extractDiscordMetrics(environment)
+      }
+      if (command._name === 'extract' && source.toLowerCase() === 'analytics') {
+        await extractGAMetrics(environment)
+      }
       process.exit(0)
     }
     catch (err) {

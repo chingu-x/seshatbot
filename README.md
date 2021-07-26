@@ -57,11 +57,13 @@ permissions.
 
 Uhurubot is a command line application (CLI). The basic command to run it is:
 ```
-node sheshatbot <option> <flags>
+node sheshatbot <command> <command-argument> <options>
 ```
-| Option     | Description                                 | Permissable flags |
-|------------|---------------------------------------------|-------------------|
-| extract    | Create channels for a Voyage                | -t            |
+| Command/Argument | Description                       | Permissable options |
+|------------|-----------------------------------------|---------------------|
+| extract    | Extract metrics from a source:          |                     |
+| ..discord  | ..extract Discord team channel metrics  | -v, -c, -t -c                  |
+| ..website  | ..extract Google Analytics metrics for chingu.io |            |
 
 
 Before running it you'll first need to identify option values you'll using 
@@ -84,12 +86,12 @@ ALWAYS override the same option you specify in the `.env` file.
 
 ### CLI Examples
 
-#### Example #1 - Extract Metrics
+#### Example #1 - Extract Discord Team Channel Metrics
 
-In a terminal session issue the following to extract metrics for a
-specific voyage: 
+In a terminal session issue the following to extract metrics for Discord team 
+channel metrics in a specific voyage: 
 ```
-node seshabot extract -v v32
+node seshabot extract discord -v v32
 ```
 
 After completion the `Voyage Metrics` table in Airtable will contain one row

@@ -1,6 +1,6 @@
 import Discord from './Discord.js'
-import { addUpdateTeamMetrics } from './Airtable.js'
-import { getVoyageSchedule } from './Airtable.js'
+import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
+import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {

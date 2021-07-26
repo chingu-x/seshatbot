@@ -1,3 +1,6 @@
+# Google Analytics credentials
+gacredentials.json
+
 # Logs
 logs
 *.log
