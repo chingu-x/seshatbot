@@ -1,4 +1,5 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
+import { addDays } from './Airtable/utils.js'
 import { addUpdateWebsiteMetrics } from './Airtable/WebsiteMetrics.js'
 
 // Get Metrics from Google Analytics for a specific range of dates
@@ -39,10 +40,6 @@ const getMetricsByRange = async (startDate, endDate) => {
   return { viewCount: viewCount, applyCount: applyCount }
 }
 
-const addDays = (theDate, days) => {
-  return new Date(theDate.getTime() + days*24*60*60*1000);
-}
-
 // Extract Google Analytics metrics for the chingu.io website
 const extractGAMetrics = async (environment) => {
   const { FIRST_DATE, LAST_DATE, INTERVAL_DAYS } = environment.getOperationalVars()
@@ -54,7 +51,7 @@ const extractGAMetrics = async (environment) => {
     const { viewCount, applyCount } = await getMetricsByRange(startDate.toISOString().slice(0,10), endDate.toISOString().slice(0,10))
 
     const result = await addUpdateWebsiteMetrics(startDate.toISOString(), 
-      endDate.toISOString(), viewCount, applyCount, 0
+      endDate.toISOString(), viewCount, applyCount
     )
 
     startDate = addDays(new Date(endDate.toISOString()), 1)

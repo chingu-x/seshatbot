@@ -1,4 +1,5 @@
 import Airtable from 'airtable'
+import { getApplicationCountByDate } from './Applications.js'
 
 // Retrieve Website Metrics for the matching start & end date range
 const getWebsiteMetric = async (metricStartDate, metricEndDate) => {
@@ -92,10 +93,12 @@ const updateWebsiteMetric = async (recordID, metricStartDate, metricEndDate,
 // Add or update website metrics for a date range. Individual metrics are 
 // identified by start and end calendar date
 const addUpdateWebsiteMetrics = async (metricStartDate, metricEndDate, 
-  pageVisitCount, applyClickCount, applicationFormCount) => {
+  pageVisitCount, applyClickCount) => {
   
   return new Promise(async (resolve, reject) => {
     let recordID = await getWebsiteMetric(metricStartDate, metricEndDate)
+    let applicationFormCount = await getApplicationCountByDate(metricStartDate, metricEndDate)
+    console.log(`addUpdateWebsiteMetrics - applicationFormCount: ${applicationFormCount}`)
 
     // If no matching row is found in the table add a new row
     if (recordID === null) {

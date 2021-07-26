@@ -1,3 +1,14 @@
+
+// Add days to a date
+const addDays = (theDate, days) => {
+  return new Date(theDate.getTime() + days*24*60*60*1000);
+}
+
+// Subtract days to a date
+const subtractDays = (theDate, days) => {
+  return new Date(theDate.getTime() - days*24*60*60*1000);
+}
+
 // Calculate the start & end dates of each Sprint
 const calculateSprints = (voyageStartDt, voyageEndDt) => {
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -34,4 +45,4 @@ const calculateSprints = (voyageStartDt, voyageEndDt) => {
   return sprintSchedule
 }
 
-export { calculateSprints }
+export { addDays, subtractDays, calculateSprints }
