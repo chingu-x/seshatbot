@@ -52,7 +52,7 @@ program
       if (command._name === 'extract' && source.toLowerCase() === 'discord') {
         await extractDiscordMetrics(environment)
       }
-      if (command._name === 'extract' && source.toLowerCase() === 'analytics') {
+      if (command._name === 'extract' && source.toLowerCase() === 'website') {
         await extractGAMetrics(environment)
       }
       process.exit(0)
