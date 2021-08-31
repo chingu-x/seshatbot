@@ -47,10 +47,11 @@ export default class Discord {
   getChannelNames(guild, voyageName, categoryRegex, channelRegex) {
     // Locate the owning category name. 
     const category = guild.channels.cache.find(category => {
-      return category.name.toUpperCase().substring(0,3) === voyageName.toUpperCase() && category.type === 'category' && category.name.match(categoryRegex)
+      return category.name.toUpperCase().substring(0,3) === voyageName.toUpperCase() && category.type === 'category' && category.name.toUpperCase().match(categoryRegex)
     })
 
     // Get the team channel names in this category. 
+    // console.log('guild.channels.cache: ', guild.channels.cache)
     let teamChannels = category.children
     .reduce((channels, channel) => {
       const result = channel.name.match(channelRegex)
