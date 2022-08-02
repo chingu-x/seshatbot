@@ -106,8 +106,11 @@ const extractDiscordMetrics = async (environment) => {
           // entry for each sprint for the current team that will be updated as
           // incoming messages are tallied.
           let teamNo = getTeamNo(channel.name)
+          console.log('extractDiscordMetrics.js - VOYAGE: ', VOYAGE, ' teamNo: ', teamNo, ' channel.name: ', channel.name)
           messageSummary.push([])
+          console.log('extractDiscordMetrics.js - messageSummary: ', messageSummary)
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
+            console.log('extractDiscordMetrics.js sprint for loop - sprintNo: ', sprintNo, ' messageSummary: ', messageSummary[teamNo])
             messageSummary[teamNo].push({ 
               voyage: VOYAGE,
               teamNo: teamNo,
