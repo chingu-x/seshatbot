@@ -1,10 +1,15 @@
-import DiscordJS from 'discord.js'
+import { Client, IntentsBitField } from 'discord.js'
 
+const GUILD_CATEGORY = 4
 export default class Discord {
+  
   constructor(environment) {
     this.environment = environment
     this.isDebug = this.environment.isDebug()
-    this.client = new DiscordJS.Client()
+
+    const myIntents = new IntentsBitField()
+    myIntents.add(IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildPresences, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildMessages)
+    this.client = new Client({ intents: myIntents })
 
     // Since extraction occurs within the `client.on` block these promises are
     // returned to the extract/audit callers and resolved by calling 
@@ -43,18 +48,29 @@ export default class Discord {
     }
   }
 
-  // Get the team channels for the specified Voyage
+  // Get the team channels for the specified Voyage from each category. 
   getChannelNames(guild, voyageName, categoryRegex, channelRegex) {
-    //console.log('Discord.js getChannelNames - voyageName: ', voyageName, 
-    //  ' categoryRegex: ', categoryRegex, ' channelRegex: ',channelRegex)
-    // Locate the owning category name. 
-    const category = guild.channels.cache.find(category => {
-      /*
-      if (category.type === 'category' && category.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
-        console.log('Discord.js getChannelNames - category: ', category)
+    // Loop through the channels in each matching category to extract their names
+    let voyageCategories = []
+    console.log('Discord.js getChannelName - guild: ', guild)
+    guild.channels.cache.forEach((channel) => {
+      if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
+        console.log('Discord.js getChannelNames - channel.name: ', channel.name)
+        voyageCategories.push(channel)
       }
-      */
-      return category.name.toUpperCase().substring(0,3) === voyageName.toUpperCase() && category.type === 'category' && category.name.toUpperCase().match(categoryRegex)
+    })
+    console.log('Discord.js getChannelNames - voyageCategories: ', voyageCategories)
+    console.log('Discord.js getChannelNames - voyageCategories.CategoryChannel[0]: ', voyageCategories[0])
+    console.log('Discord.js getChannelNames - voyageCategories.CategoryChannel[0].channels: ', voyageCategories[0].channels.cache)
+
+    const category = voyageCategories.guild.channels.cache.find(channel => {
+       console.log('Discord.js getChannelNames - channel: ', voyageCategories[0].guild.channels.cache)
+
+      if (channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
+        //console.log('Discord.js getChannelNames - category: ', category)
+        return channel
+      }
+      //return channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase() && channel.type === 'category' && channel.name.toUpperCase().match(categoryRegex)
     })
 
     // Get the team channel names in this category. 

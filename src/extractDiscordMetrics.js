@@ -79,6 +79,7 @@ const extractDiscordMetrics = async (environment) => {
   const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
   const client = discordIntf.getDiscordClient()
+  await client.login(DISCORD_TOKEN)
   const guild = await client.guilds.fetch(GUILD_ID)
 
   try {
@@ -102,12 +103,15 @@ const extractDiscordMetrics = async (environment) => {
 
       for (let channel of teamChannels) {
         if (channel.type !== 'category') {
-          // Retrieve all messages in the channel. Start by creating a template
-          // entry for each sprint for the current team that will be updated as
-          // incoming messages are tallied.
+          // Retrieve all messages in the channel. There is one row in the channel
+          // messageSummary array for each team and within each row there is
+          // an embedded array with one cell per Sprint.
+          
+          // Start by formatting the current team row with an entry for each 
+          // sprint. Incoming messages will be tallied here.
           let teamNo = getTeamNo(channel.name)
           console.log('extractDiscordMetrics.js - VOYAGE: ', VOYAGE, ' teamNo: ', teamNo, ' channel.name: ', channel.name)
-          messageSummary.push([])
+          messageSummary.push([]) // Create a new row for the team
           console.log('extractDiscordMetrics.js - messageSummary: ', messageSummary)
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             console.log('extractDiscordMetrics.js sprint for loop - sprintNo: ', sprintNo, ' messageSummary: ', messageSummary[teamNo])
