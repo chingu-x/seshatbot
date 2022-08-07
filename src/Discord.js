@@ -1,6 +1,7 @@
 import { Client, IntentsBitField } from 'discord.js'
 
 const GUILD_CATEGORY = 4
+const GUILD_TEXT = 0
 export default class Discord {
   
   constructor(environment) {
@@ -52,30 +53,27 @@ export default class Discord {
   getChannelNames(guild, voyageName, categoryRegex, channelRegex) {
     // Loop through the channels in each matching category to extract their names
     let voyageCategories = []
-    console.log('Discord.js getChannelName - guild: ', guild)
+    
     guild.channels.cache.forEach((channel) => {
       if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
         console.log('Discord.js getChannelNames - channel.name: ', channel.name)
-        voyageCategories.push(channel)
+        voyageCategories.push({ name: channel.name, id: channel.id })
       }
     })
     console.log('Discord.js getChannelNames - voyageCategories: ', voyageCategories)
-    console.log('Discord.js getChannelNames - voyageCategories.CategoryChannel[0]: ', voyageCategories[0])
-    console.log('Discord.js getChannelNames - voyageCategories.CategoryChannel[0].channels: ', voyageCategories[0].channels.cache)
 
-    const category = voyageCategories.guild.channels.cache.find(channel => {
-       console.log('Discord.js getChannelNames - channel: ', voyageCategories[0].guild.channels.cache)
-
-      if (channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
-        //console.log('Discord.js getChannelNames - category: ', category)
-        return channel
+    // Retrieve the list of channels for this Voyage
+    let voyageChannels = []
+    guild.channels.cache.forEach((channel) => {
+      const isChannelInVoyage = voyageCategories.find((category) => channel.parentId === category.id) === undefined ? false : true
+      if (isChannelInVoyage && channel.type === GUILD_TEXT) {
+        console.log('Discord.js getChannelNames - channel.name: ', channel.name, ' channel.parentId: ', channel.parentId)
+        voyageChannels.push(channel)
       }
-      //return channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase() && channel.type === 'category' && channel.name.toUpperCase().match(categoryRegex)
     })
 
-    // Get the team channel names in this category. 
-    // console.log('guild.channels.cache: ', guild.channels.cache)
-    let teamChannels = category.children
+    // Sort the team channels by their names 
+    let sortedChannels = voyageChannels
     .reduce((channels, channel) => {
       const result = channel.name.match(channelRegex)
       if (result !== null) {
@@ -89,8 +87,10 @@ export default class Discord {
         ? 1 
         : -1
     })
+
+    console.log('Discord.js getChannelNames - sortedChannels: ', sortedChannels)
     
-    return {category, teamChannels }
+    return {category, sortedChannels }
   }
   
   getDiscordClient() {
