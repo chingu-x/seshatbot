@@ -85,7 +85,7 @@ const extractDiscordMetrics = async (environment) => {
   try {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
-      const { category, teamChannels } = discordIntf.getChannelNames(guild, VOYAGE, CATEGORY, CHANNEL)
+      const { category, teamChannels } = discordIntf.getTeamChannels(guild, VOYAGE, CATEGORY, CHANNEL)
 
       // Set up the progress bars
       const channelNames = [category.name]

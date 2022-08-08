@@ -49,8 +49,8 @@ export default class Discord {
     }
   }
 
-  // Get the team channels for the specified Voyage from each category. 
-  getChannelNames(guild, voyageName, categoryRegex, channelRegex) {
+  // Get the team channels and their parent categories for the specified Voyage. 
+  getTeamChannels(guild, voyageName, categoryRegex, channelRegex) {
     // Locate all the categories for this Voyage
     let voyageCategories = []
     guild.channels.cache.forEach((channel) => {
@@ -88,7 +88,7 @@ export default class Discord {
 
     console.log('Discord.js getChannelNames - sortedChannels: ', sortedChannels)
     
-    return {category, sortedChannels }
+    return sortedChannels
   }
   
   getDiscordClient() {
