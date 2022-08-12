@@ -37,6 +37,7 @@ const getTierName = (channelName) => {
 // Extract the team number from the Discord channel name. Channel names must be
 // formatted as `<tier-name>-team-<team-no>`
 const getTeamNo = (channelName) => {
+  console.log('extractDiscordMetrics.js getTeamNo: ', channelName)
   return parseInt(channelName.split('-')[2])
 }
 
@@ -85,14 +86,14 @@ const extractDiscordMetrics = async (environment) => {
   try {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
-      const { category, teamChannels } = discordIntf.getTeamChannels(guild, VOYAGE, CATEGORY, CHANNEL)
+      const teamChannels = discordIntf.getTeamChannels(guild, VOYAGE, CATEGORY, CHANNEL)
 
       // Set up the progress bars
-      const channelNames = [category.name]
+      const channelNames = teamChannels.map((channelInfo) => channelInfo.channel.name)
+      console.log('extractDiscordMetrics.js - channelNames: ', channelNames)
 
-      teamChannels.forEach(channel => channelNames.push(channel.name))
       let { overallProgress, progressBars } = initializeProgressBars(
-        category.name,
+        'All Channels',
         channelNames, 
         { includeDetailBars: true, includeCategory: true }
       )
@@ -101,7 +102,8 @@ const extractDiscordMetrics = async (environment) => {
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
       const schedule = await getVoyageSchedule(VOYAGE)
 
-      for (let channel of teamChannels) {
+      for (let channelInfo of teamChannels) {
+        const channel = channelInfo.channel
         if (channel.type !== 'category') {
           // Retrieve all messages in the channel. There is one row in the channel
           // messageSummary array for each team and within each row there is
@@ -109,12 +111,9 @@ const extractDiscordMetrics = async (environment) => {
           
           // Start by formatting the current team row with an entry for each 
           // sprint. Incoming messages will be tallied here.
-          let teamNo = getTeamNo(channel.name)
-          console.log('extractDiscordMetrics.js - VOYAGE: ', VOYAGE, ' teamNo: ', teamNo, ' channel.name: ', channel.name)
+          let teamNo = getTeamNo(channel.name) 
           messageSummary.push([]) // Create a new row for the team
-          console.log('extractDiscordMetrics.js - messageSummary: ', messageSummary)
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
-            console.log('extractDiscordMetrics.js sprint for loop - sprintNo: ', sprintNo, ' messageSummary: ', messageSummary[teamNo])
             messageSummary[teamNo].push({ 
               voyage: VOYAGE,
               teamNo: teamNo,
@@ -131,7 +130,7 @@ const extractDiscordMetrics = async (environment) => {
       }
 
       // Add or update matching rows in Airtable
-      let teamNo = 0
+      let teamNo = 1
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordID, messageCount] of sprint.userMessages) {          

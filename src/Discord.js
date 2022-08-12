@@ -65,7 +65,7 @@ export default class Discord {
     guild.channels.cache.forEach((channel) => {
       const category = voyageCategories.find((category) => channel.parentId === category.id)
       if (category !== undefined && channel.type === GUILD_TEXT) {
-        console.log('Discord.js getChannelNames - channel.name: ', channel.name, ' channel.parentId: ', channel.parentId)
+        //console.log('Discord.js getChannelNames - channel.name: ', channel.name, ' channel.parentId: ', channel.parentId)
         voyageChannels.push({ channel: channel, category: category })
       }
     })

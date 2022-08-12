@@ -14,12 +14,12 @@ const initializeProgressBars = (voyageName, teamChannelNames, { includeDetailBar
   }, cliProgress.Presets.shades_classic)
 
   if (includeDetailBars) {
-    progressBars[0] = overallProgress.create(teamChannelNames.length-1, 0)
+    progressBars[0] = overallProgress.create(teamChannelNames.length, 0)
     progressBars[0].update(0, { description: voyageName.padEnd(DESC_MAX_LTH+10, ' ') })
     
-    for (let teamNo = 1; teamNo < teamChannelNames.length; ++teamNo) {
-      progressBars[teamNo] = overallProgress.create(1, 0)
-      progressBars[teamNo].update(0, { 
+    for (let teamNo = 0; teamNo < teamChannelNames.length; ++teamNo) {
+      progressBars[teamNo+1] = overallProgress.create(1, 0)
+      progressBars[teamNo+1].update(0, { 
         description: 'Channel:  '.concat(teamChannelNames[teamNo].padEnd(DESC_MAX_LTH, ' '))
       })
     }
