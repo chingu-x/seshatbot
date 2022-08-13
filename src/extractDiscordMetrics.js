@@ -37,7 +37,6 @@ const getTierName = (channelName) => {
 // Extract the team number from the Discord channel name. Channel names must be
 // formatted as `<tier-name>-team-<team-no>`
 const getTeamNo = (channelName) => {
-  console.log('extractDiscordMetrics.js getTeamNo: ', channelName)
   return parseInt(channelName.split('-')[2])
 }
 
@@ -111,7 +110,7 @@ const extractDiscordMetrics = async (environment) => {
           
           // Start by formatting the current team row with an entry for each 
           // sprint. Incoming messages will be tallied here.
-          let teamNo = getTeamNo(channel.name) 
+          let teamNo = getTeamNo(channel.name)
           messageSummary.push([]) // Create a new row for the team
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             messageSummary[teamNo].push({ 
@@ -130,7 +129,7 @@ const extractDiscordMetrics = async (environment) => {
       }
 
       // Add or update matching rows in Airtable
-      let teamNo = 1
+      let teamNo = 0
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordID, messageCount] of sprint.userMessages) {          
@@ -143,7 +142,7 @@ const extractDiscordMetrics = async (environment) => {
 
         // Update the progress bar
         progressBars[0].increment(1)
-        progressBars[teamNo].increment(1)
+        progressBars[teamNo+1].increment(1)
         teamNo += 1
       }
 
