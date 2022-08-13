@@ -79,34 +79,33 @@ const extractDiscordMetrics = async (environment) => {
   const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
   const client = discordIntf.getDiscordClient()
+  await client.login(DISCORD_TOKEN)
   const guild = await client.guilds.fetch(GUILD_ID)
 
   try {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
-      const { category, teamChannels } = discordIntf.getChannelNames(guild, VOYAGE, CATEGORY, CHANNEL)
+      const teamChannels = discordIntf.getTeamChannels(guild, VOYAGE, CATEGORY, CHANNEL)
 
       // Set up the progress bars
-      const channelNames = [category.name]
-
-      teamChannels.forEach(channel => channelNames.push(channel.name))
-      let { overallProgress, progressBars } = initializeProgressBars(
-        category.name,
-        channelNames, 
-        { includeDetailBars: true, includeCategory: true }
-      )
+      const channelNames = teamChannels.map((channelInfo) => channelInfo.channel.name)
+      let overallProgress = initializeProgressBars('All Channels', channelNames)
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
       const schedule = await getVoyageSchedule(VOYAGE)
 
-      for (let channel of teamChannels) {
+      for (let channelInfo of teamChannels) {
+        const channel = channelInfo.channel
         if (channel.type !== 'category') {
-          // Retrieve all messages in the channel. Start by creating a template
-          // entry for each sprint for the current team that will be updated as
-          // incoming messages are tallied.
+          // Retrieve all messages in the channel. There is one row in the channel
+          // messageSummary array for each team and within each row there is
+          // an embedded array with one cell per Sprint.
+          
+          // Start by formatting the current team row with an entry for each 
+          // sprint. Incoming messages will be tallied here.
           let teamNo = getTeamNo(channel.name)
-          messageSummary.push([])
+          messageSummary.push([]) // Create a new row for the team
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             messageSummary[teamNo].push({ 
               voyage: VOYAGE,
@@ -136,8 +135,8 @@ const extractDiscordMetrics = async (environment) => {
         }
 
         // Update the progress bar
-        progressBars[0].increment(1)
-        progressBars[teamNo].increment(1)
+        overallProgress.increment()
+        overallProgress.update(teamNo)
         teamNo += 1
       }
 
