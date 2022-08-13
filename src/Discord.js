@@ -55,7 +55,6 @@ export default class Discord {
     let voyageCategories = []
     guild.channels.cache.forEach((channel) => {
       if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
-        console.log('Discord.js getChannelNames - channel.name: ', channel.name)
         voyageCategories.push(channel)
       }
     })
@@ -65,7 +64,6 @@ export default class Discord {
     guild.channels.cache.forEach((channel) => {
       const category = voyageCategories.find((category) => channel.parentId === category.id)
       if (category !== undefined && channel.type === GUILD_TEXT) {
-        //console.log('Discord.js getChannelNames - channel.name: ', channel.name, ' channel.parentId: ', channel.parentId)
         voyageChannels.push({ channel: channel, category: category })
       }
     })
@@ -85,8 +83,6 @@ export default class Discord {
         ? 1 
         : -1
     })
-
-    console.log('Discord.js getChannelNames - sortedChannels: ', sortedChannels)
     
     return sortedChannels
   }

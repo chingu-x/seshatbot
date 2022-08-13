@@ -89,13 +89,7 @@ const extractDiscordMetrics = async (environment) => {
 
       // Set up the progress bars
       const channelNames = teamChannels.map((channelInfo) => channelInfo.channel.name)
-      console.log('extractDiscordMetrics.js - channelNames: ', channelNames)
-
-      let { overallProgress, progressBars } = initializeProgressBars(
-        'All Channels',
-        channelNames, 
-        { includeDetailBars: true, includeCategory: true }
-      )
+      let overallProgress = initializeProgressBars('All Channels', channelNames)
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
@@ -141,8 +135,8 @@ const extractDiscordMetrics = async (environment) => {
         }
 
         // Update the progress bar
-        progressBars[0].increment(1)
-        progressBars[teamNo+1].increment(1)
+        overallProgress.increment()
+        overallProgress.update(teamNo)
         teamNo += 1
       }
 
