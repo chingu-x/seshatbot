@@ -1,10 +1,16 @@
-import DiscordJS from 'discord.js'
+import { Client, IntentsBitField } from 'discord.js'
 
+const GUILD_CATEGORY = 4
+const GUILD_TEXT = 0
 export default class Discord {
+  
   constructor(environment) {
     this.environment = environment
     this.isDebug = this.environment.isDebug()
-    this.client = new DiscordJS.Client()
+
+    const myIntents = new IntentsBitField()
+    myIntents.add(IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildPresences, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildMessages)
+    this.client = new Client({ intents: myIntents })
 
     // Since extraction occurs within the `client.on` block these promises are
     // returned to the extract/audit callers and resolved by calling 
@@ -43,18 +49,29 @@ export default class Discord {
     }
   }
 
-  // Get the team channels for the specified Voyage
-  getChannelNames(guild, voyageName, categoryRegex, channelRegex) {
-    // Locate the owning category name. 
-    const category = guild.channels.cache.find(category => {
-      return category.name.toUpperCase().substring(0,3) === voyageName.toUpperCase() && category.type === 'category' && category.name.toUpperCase().match(categoryRegex)
+  // Get the team channels and their parent categories for the specified Voyage. 
+  getTeamChannels(guild, voyageName, categoryRegex, channelRegex) {
+    // Locate all the categories for this Voyage
+    let voyageCategories = []
+    guild.channels.cache.forEach((channel) => {
+      if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
+        voyageCategories.push(channel)
+      }
     })
 
-    // Get the team channel names in this category. 
-    // console.log('guild.channels.cache: ', guild.channels.cache)
-    let teamChannels = category.children
+    // Retrieve the list of channels for this Voyage
+    let voyageChannels = []
+    guild.channels.cache.forEach((channel) => {
+      const category = voyageCategories.find((category) => channel.parentId === category.id)
+      if (category !== undefined && channel.type === GUILD_TEXT) {
+        voyageChannels.push({ channel: channel, category: category })
+      }
+    })
+
+    // Sort the team channels by their names 
+    let sortedChannels = voyageChannels
     .reduce((channels, channel) => {
-      const result = channel.name.match(channelRegex)
+      const result = channel.channel.name.match(channelRegex)
       if (result !== null) {
         channels.push(channel)
       }
@@ -62,12 +79,12 @@ export default class Discord {
     }, [])
     .sort((a, b) => {
       // Sort in ascending team number sequence
-      return parseInt(a.name.substr(a.name.length - 2)) >= parseInt(b.name.substr(b.name.length - 2)) 
+      return parseInt(a.channel.name.substr(a.channel.name.length - 2)) >= parseInt(b.channel.name.substr(b.channel.name.length - 2)) 
         ? 1 
         : -1
     })
     
-    return {category, teamChannels }
+    return sortedChannels
   }
   
   getDiscordClient() {
