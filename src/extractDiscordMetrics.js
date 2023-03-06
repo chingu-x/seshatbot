@@ -23,20 +23,21 @@ const getSprintInfo = (sprintSchedule, messageTimestamp) => {
 // formatted as `<tier-name>-team-<team-no>`
 const getTierName = (channelName) => {
   const tierNameTranslations = [
-    { animalName: 'Toucans', tierName: 'Tier 1'},
-    { animalName: 'Geckos', tierName: 'Tier 2'},
-    { animalName: 'Bears', tierName: 'Tier 3'},
-    { animalName: 'Chimeras', tierName: 'Tier n'},
+    { animalName: 'Tier1', tierName: 'Tier 1'},
+    { animalName: 'Tier2', tierName: 'Tier 2'},
+    { animalName: 'Tier3', tierName: 'Tier 3'},
   ]
   const tierNameIndex = tierNameTranslations.findIndex(translation => 
     translation.animalName.toLowerCase() === channelName.split('-')[0].toLowerCase()
   )
+  console.log(`channelName: ${ channelName } tierNameIndex: ${ tierNameIndex } .tierName: ${ tierNameTranslations[tierNameIndex].tierName }`)
   return tierNameTranslations[tierNameIndex].tierName
 }
 
 // Extract the team number from the Discord channel name. Channel names must be
 // formatted as `<tier-name>-team-<team-no>`
 const getTeamNo = (channelName) => {
+  console.log(`channelName: ${ channelName } team no.: ${ channelName.split('-')[2] }`)
   return parseInt(channelName.split('-')[2])
 }
 
@@ -105,6 +106,7 @@ const extractDiscordMetrics = async (environment) => {
           // Start by formatting the current team row with an entry for each 
           // sprint. Incoming messages will be tallied here.
           let teamNo = getTeamNo(channel.name)
+          console.log(`teamNo: ${ teamNo }`)
           messageSummary.push([]) // Create a new row for the team
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             messageSummary[teamNo].push({ 
