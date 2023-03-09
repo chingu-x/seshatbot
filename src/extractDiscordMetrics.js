@@ -1,6 +1,7 @@
 import Discord from './Discord.js'
 import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
+import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
@@ -41,7 +42,7 @@ const getTeamNo = (channelName) => {
 
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.
-const summarizeMessages = (schedule, teamNo, message, messageSummary) => {
+const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   //return new Promise(async (resolve, reject) => {
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
     const sprintInfo = getSprintInfo(
@@ -61,6 +62,21 @@ const summarizeMessages = (schedule, teamNo, message, messageSummary) => {
             }
           }
         }
+
+        // Add a userMessages entry for any team member who didn't post a
+        // message in a sprint
+        const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
+
+        for (let member of teamMembers) {
+          for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
+            if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
+              if (!messageSummary[teamNo][sprintIndex].userMessages.has(member.discord_name)) {
+                messageSummary[teamNo][sprintIndex].userMessages.set(member.discord_name, 0)
+              }
+            }
+          }
+        }
+
         //resolve()
         return
       } catch (err) {
@@ -127,7 +143,8 @@ const extractDiscordMetrics = async (environment) => {
           }
           priorTeamNo = teamNo
 
-          await discordIntf.fetchAllMessages(channel, schedule, teamNo, summarizeMessages, messageSummary)
+          await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
+            summarizeMessages, messageSummary)
         }
       }
 
