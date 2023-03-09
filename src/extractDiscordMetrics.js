@@ -23,10 +23,9 @@ const getSprintInfo = (sprintSchedule, messageTimestamp) => {
 // formatted as `<tier-name>-team-<team-no>`
 const getTierName = (channelName) => {
   const tierNameTranslations = [
-    { animalName: 'Toucans', tierName: 'Tier 1'},
-    { animalName: 'Geckos', tierName: 'Tier 2'},
-    { animalName: 'Bears', tierName: 'Tier 3'},
-    { animalName: 'Chimeras', tierName: 'Tier n'},
+    { animalName: 'Tier1', tierName: 'Tier 1'},
+    { animalName: 'Tier2', tierName: 'Tier 2'},
+    { animalName: 'Tier3', tierName: 'Tier 3'},
   ]
   const tierNameIndex = tierNameTranslations.findIndex(translation => 
     translation.animalName.toLowerCase() === channelName.split('-')[0].toLowerCase()
@@ -95,6 +94,7 @@ const extractDiscordMetrics = async (environment) => {
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
       const schedule = await getVoyageSchedule(VOYAGE)
 
+      let priorTeamNo = 1
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -105,7 +105,15 @@ const extractDiscordMetrics = async (environment) => {
           // Start by formatting the current team row with an entry for each 
           // sprint. Incoming messages will be tallied here.
           let teamNo = getTeamNo(channel.name)
-          messageSummary.push([]) // Create a new row for the team
+          const gapInTeamNos = teamNo - priorTeamNo
+          if (gapInTeamNos === 0) {
+            messageSummary.push([]) // Create a new row for the team
+          } else {
+            for (let i = priorTeamNo + 1; i <= teamNo; i++) {
+              messageSummary.push([]) // Create a new row for the skipped team(s) and the current team
+            }
+          }
+
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             messageSummary[teamNo].push({ 
               voyage: VOYAGE,
@@ -117,6 +125,7 @@ const extractDiscordMetrics = async (environment) => {
               userMessages: new Map()
             })
           }
+          priorTeamNo = teamNo
 
           await discordIntf.fetchAllMessages(channel, schedule, teamNo, summarizeMessages, messageSummary)
         }
