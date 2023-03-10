@@ -4,6 +4,9 @@ import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
+const adminIDs = ['jdmedlock#4582', 'Hypno#9777', 'りゆ#8513', 'дилан#7921', 
+  'Uhurubot#3467', 'KiZa19#2591']
+
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0
   for (let sprint of sprintSchedule) {
@@ -43,8 +46,12 @@ const getTeamNo = (channelName) => {
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
-  //return new Promise(async (resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
+    console.log(`summarizeMessages - teamNo: ${ teamNo } discordUserID: ${ discordUserID }`)
+    if (adminIDs.includes(discordUserID)) {
+      resolve()
+    }
     const sprintInfo = getSprintInfo(
       schedule.sprintSchedule, message.createdTimestamp)
     if (sprintInfo !== null) {
@@ -64,28 +71,31 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
         }
 
         // Add a userMessages entry for any team member who didn't post a
-        // message in a sprint
+        // message in a sprint & set the email address for all team members
+        //console.log(`schedule.voyageName: ${ schedule.voyageName } teamNo: ${ teamNo }`)
         const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
 
         for (let member of teamMembers) {
           for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
+            // Add an entry for any team member who posted no messages
             if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
               if (!messageSummary[teamNo][sprintIndex].userMessages.has(member.discord_name)) {
                 messageSummary[teamNo][sprintIndex].userMessages.set(member.discord_name, 0)
               }
             }
+            // Add the email address to all team members
+            messageSummary[teamNo][sprintIndex].userSignupIDs.set(member.discord_name, member.signup_id)
           }
         }
 
-        //resolve()
-        return
+        resolve()
       } catch (err) {
-        console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo } messageSummary: `, messageSummary)
+        console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo }`)
         console.log(err)
-        //reject(err)
+        reject(err)
       }
     }
-  //})
+  })
 }
 
 // Extract team message metrics from the Discord channels
@@ -138,7 +148,8 @@ const extractDiscordMetrics = async (environment) => {
               sprintStartDt: null,
               sprintEndDt: null,
               tierName: getTierName(channel.name),
-              userMessages: new Map()
+              userMessages: new Map(),
+              userSignupIDs: new Map()
             })
           }
           priorTeamNo = teamNo
@@ -152,11 +163,17 @@ const extractDiscordMetrics = async (environment) => {
       let teamNo = 0
       for (let team of messageSummary) {
         for (let sprint of team) {
-          for (let [discordID, messageCount] of sprint.userMessages) {          
-            const result = await addUpdateTeamMetrics(sprint.voyage, 
-              sprint.teamNo, sprint.tierName, 
-              sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
-              discordID, messageCount)
+          for (let [discordID, messageCount] of sprint.userMessages) { 
+            const userSignupID = sprint.userSignupIDs.get(discordID) 
+            console.log(`updating metrics for discord id: ${ discordID }`)
+            if (adminIDs.includes(discordID)) {
+              console.log(`...skipping discord id: ${ discordID }`)
+            } else {
+              const result = await addUpdateTeamMetrics(sprint.voyage, 
+                sprint.teamNo, sprint.tierName, 
+                sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
+                discordID, messageCount, userSignupID )
+            }
           }
         }
 

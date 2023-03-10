@@ -18,7 +18,7 @@ const getVoyageMetric = async (voyageName, teamNo, sprintNo, discordID) => {
     })
     .firstPage((err, records) => {
       if (err) { 
-        console.error('filter: ', filter)
+        console.error('getVoyageMetric - filter: ', filter)
         console.error(err) 
         reject(err) 
       }
@@ -37,7 +37,7 @@ const getVoyageMetric = async (voyageName, teamNo, sprintNo, discordID) => {
 
 // Add a new Voyage Metric row to AirTable
 const addVoyageMetric = async (voyageName, teamNo, tierName, 
-  sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount) => {
+  sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount, signupID) => {
 
   return new Promise(async (resolve, reject) => {
     const startDt = new Date(sprintStartDt)
@@ -54,13 +54,15 @@ const addVoyageMetric = async (voyageName, teamNo, tierName,
           "Tier Name": tierName,
           "Team No": teamNo,
           "Team Channel Msg Count": messageCount,
-          "Discord ID": discordID
+          "Discord ID": discordID,
+          "Voyage Signups Link": [signupID],
       }
     }], (err, records) => {
       if (err) {
         console.error(err)
         reject(err)
       }
+      console.log(`discordID: ${ discordID } signupID: ${ signupID }`)
       resolve(records[0].id)
     })
   })
@@ -102,7 +104,7 @@ const updateVoyageMetric = async (recordID, voyageName, teamNo, tierName,
 // Add or update metrics for a team member. Individual metrics are identified
 // by voyage name, team number, tier name, sprint number, & the Discord user name
 const addUpdateTeamMetrics = async (voyageName, teamNo, tierName, 
-  sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount) => {
+  sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount, signupID) => {
   
   return new Promise(async (resolve, reject) => {
     let recordID = await getVoyageMetric(voyageName, teamNo, sprintNo, discordID)
@@ -110,7 +112,7 @@ const addUpdateTeamMetrics = async (voyageName, teamNo, tierName,
     // If no matching row is found in the table add a new row
     if (recordID === null) {
       const addResult = await addVoyageMetric(voyageName, teamNo, tierName, 
-        sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount)
+        sprintNo, sprintStartDt, sprintEndDt, discordID, messageCount, signupID)
       resolve(addResult)
     } else {
       // If a matching row is found update it with the message count

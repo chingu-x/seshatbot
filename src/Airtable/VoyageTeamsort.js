@@ -30,6 +30,7 @@ const getVoyageTeam = async (voyage, teamNo) => {
           .join('')
         voyagers.push({ 
           number: `${ voyagerNo }`,
+          signup_id: `${ record.id }`,
           email: `${ record.get('Email') }`,
           voyage: `${ record.get('Voyage') }`,
           team_name: `${ record.get('Team Name') }`,
@@ -46,7 +47,7 @@ const getVoyageTeam = async (voyage, teamNo) => {
       fetchNextPage()
     }, function done(err) {
       if (err) { 
-        console.error('filter: ', filter)
+        console.error('getVoyageTeam - filter: ', filter)
         console.error(err) 
         reject(err) 
       }
