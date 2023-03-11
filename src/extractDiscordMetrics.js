@@ -4,8 +4,11 @@ import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
+/*
 const adminIDs = ['jdmedlock#4582', 'Hypno#9777', 'りゆ#8513', 'дилан#7921', 
   'Uhurubot#3467', 'KiZa19#2591']
+*/
+const adminIDs = ['jdmedlock#4582', 'Hypno#9777', 'Uhurubot#3467']
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0

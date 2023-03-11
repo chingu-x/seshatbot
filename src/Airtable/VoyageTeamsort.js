@@ -9,7 +9,8 @@ const getVoyageTeam = async (voyage, teamNo) => {
 
     const filter = 'AND(' +
       '{Voyage} = "' + voyage + '", ' +
-      '{Team No.} = "' + teamNo + '"' +
+      '{Team No.} = "' + teamNo + '", ' +
+      '{Role} != "Mentor"' +
     ')'
     
     base('Voyage Signups').select({ 

@@ -24,7 +24,7 @@ const getWebsiteMetric = async (metricStartDate, metricEndDate) => {
 
       // If the record is found return its id. Otherwise, return null if it's
       // not found
-      if (records !== null || records !== undefined) {
+      if (records !== null && records !== undefined) {
         for (let i = 0; i < records.length; ++i) {
           if (records.length > 0) {
             resolve(records[i].id)
@@ -57,7 +57,11 @@ const addWebsiteMetric = async (metricStartDate, metricEndDate,
         console.error(err)
         reject(err)
       }
-      resolve(records[0].id)
+      if (records) {
+        resolve(records[0].id)
+      } else {
+        resolve(null)
+      }
     })
   })
 }
@@ -85,7 +89,12 @@ const updateWebsiteMetric = async (recordID, metricStartDate, metricEndDate,
         console.error('Error:', err)
         reject(err)
       }
-      resolve(records[0].id)
+
+      if (records !== null && records !== undefined) {
+        resolve(records[0].id)
+      } else {
+        resolve(null)
+      }
     })
   })
 }
