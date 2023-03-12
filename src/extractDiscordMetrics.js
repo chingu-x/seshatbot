@@ -51,7 +51,7 @@ const getTeamNo = (channelName) => {
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
-    console.log(`summarizeMessages - teamNo: ${ teamNo } discordUserID: ${ discordUserID }`)
+    //console.log(`summarizeMessages - teamNo: ${ teamNo } discordUserID: ${ discordUserID }`)
     if (adminIDs.includes(discordUserID)) {
       resolve()
     }
@@ -75,7 +75,6 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
 
         // Add a userMessages entry for any team member who didn't post a
         // message in a sprint & set the email address for all team members
-        //console.log(`schedule.voyageName: ${ schedule.voyageName } teamNo: ${ teamNo }`)
         const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
 
         for (let member of teamMembers) {
@@ -168,7 +167,7 @@ const extractDiscordMetrics = async (environment) => {
         for (let sprint of team) {
           for (let [discordID, messageCount] of sprint.userMessages) { 
             const userSignupID = sprint.userSignupIDs.get(discordID) 
-            console.log(`updating metrics for discord id: ${ discordID }`)
+            //console.log(`updating metrics for discord id: ${ discordID }`)
             if (adminIDs.includes(discordID)) {
               console.log(`...skipping discord id: ${ discordID }`)
             } else {
