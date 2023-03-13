@@ -35,7 +35,7 @@ export default class Discord {
         const messages = await channel.messages.fetch(fetchOptions)
         if (messages.size > 0) {
           for (let [messageID, message] of messages) {
-            callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
+            await callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
           }
           fetchOptions = { limit: 100, before: messages.last().id }
         } else {
