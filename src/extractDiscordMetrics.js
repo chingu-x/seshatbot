@@ -51,7 +51,6 @@ const getTeamNo = (channelName) => {
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
     const discordUserID = message.author.username.concat('#',message.author.discriminator)
-    //console.log(`summarizeMessages - teamNo: ${ teamNo } discordUserID: ${ discordUserID }`)
     if (adminIDs.includes(discordUserID)) {
       resolve()
     }

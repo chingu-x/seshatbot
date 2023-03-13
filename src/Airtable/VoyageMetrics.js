@@ -63,7 +63,7 @@ const addVoyageMetric = async (voyageName, teamNo, tierName,
         console.error(err)
         reject(err)
       }
-      console.log(`addVoyageMetric - discordID: ${ discordID } signupID: ${ signupID }`)
+
       if (records) {
         resolve(records[0].id)
       } else {
@@ -104,7 +104,6 @@ const updateVoyageMetric = async (recordID, voyageName, teamNo, tierName,
         reject(err)
       }
 
-      console.log(`updateVoyageMetric - discordID: ${ discordID } signupID: ${ signupID }`)
       if (records) {
         resolve(records[0].id)
       } else {
