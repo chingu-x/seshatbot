@@ -50,8 +50,9 @@ const getTeamNo = (channelName) => {
 // `messageSummary` object for each voyage, team, sprint, and team member.
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
-    const discordUserID = message.author.username.concat('#',message.author.discriminator)
-    if (adminIDs.includes(discordUserID)) {
+    //console.log('message: ', message)
+    const discordUserName = message.author.username.concat('#',message.author.discriminator)
+    if (adminIDs.includes(discordUserName)) {
       resolve()
     }
     const sprintInfo = getSprintInfo(
@@ -63,11 +64,11 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
         messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
         for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
           if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
-            if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserID)) {
-              let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserID) + 1
-              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, userCount)
+            if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserName)) {
+              let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserName) + 1
+              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, userCount)
             } else {
-              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, 1)
+              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, 1)
             }
           }
         }
@@ -120,8 +121,8 @@ const extractDiscordMetrics = async (environment) => {
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
       const schedule = await getVoyageSchedule(VOYAGE)
-
       let priorTeamNo = 1
+
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -133,6 +134,7 @@ const extractDiscordMetrics = async (environment) => {
           // sprint. Incoming messages will be tallied here.
           let teamNo = getTeamNo(channel.name)
           const gapInTeamNos = teamNo - priorTeamNo
+
           if (gapInTeamNos === 0) {
             messageSummary.push([]) // Create a new row for the team
           } else {
@@ -164,16 +166,15 @@ const extractDiscordMetrics = async (environment) => {
       let teamNo = 0
       for (let team of messageSummary) {
         for (let sprint of team) {
-          for (let [discordID, messageCount] of sprint.userMessages) { 
-            const userSignupID = sprint.userSignupIDs.get(discordID) 
-            //console.log(`updating metrics for discord id: ${ discordID }`)
-            if (adminIDs.includes(discordID)) {
-              console.log(`...skipping discord id: ${ discordID }`)
+          for (let [discordName, messageCount] of sprint.userMessages) { 
+            const userSignupID = sprint.userSignupIDs.get(discordName) 
+            if (adminIDs.includes(discordName)) {
+              console.log(`...skipping discord name: ${ discordName }`)
             } else {
               const result = await addUpdateTeamMetrics(sprint.voyage, 
                 sprint.teamNo, sprint.tierName, 
                 sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
-                discordID, messageCount, userSignupID )
+                discordName, messageCount, userSignupID )
             }
           }
         }
