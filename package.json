@@ -18,7 +18,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "discord": "node seshatbot extract discord -v v40",
+    "discord": "node seshatbot extract discord -v v45",
     "website": "node seshatbot extract website"
   },
   "repository": {

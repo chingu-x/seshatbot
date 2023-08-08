@@ -1,4 +1,4 @@
-import { Client, IntentsBitField } from 'discord.js'
+import { Client, GatewayIntentBits } from 'discord.js'
 
 const GUILD_CATEGORY = 4
 const GUILD_TEXT = 0
@@ -8,9 +8,18 @@ export default class Discord {
     this.environment = environment
     this.isDebug = this.environment.isDebug()
 
+    /*
     const myIntents = new IntentsBitField()
     myIntents.add(IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildPresences, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildMessages)
     this.client = new Client({ intents: myIntents })
+    */
+    this.client = new Client({
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+      ],
+    })
+    this.login = this.client.login(process.env.DISCORD_TOKEN)
 
     // Since extraction occurs within the `client.on` block these promises are
     // returned to the extract/audit callers and resolved by calling 
@@ -49,6 +58,10 @@ export default class Discord {
     }
   }
 
+  getDiscordClient() {
+    return this.client
+  }
+
   // Get the team channels and their parent categories for the specified Voyage. 
   getTeamChannels(guild, voyageName, categoryRegex, channelRegex) {
     // Locate all the categories for this Voyage
@@ -85,10 +98,6 @@ export default class Discord {
     })
     
     return sortedChannels
-  }
-  
-  getDiscordClient() {
-    return this.client
   }
 
 }

@@ -14,7 +14,7 @@ const getVoyageTeam = async (voyage, teamNo) => {
     ')'
     
     base('Voyage Signups').select({ 
-      fields:['Email', 'Voyage', 'Team Name', 'Tier', 'Team No.', 'Discord ID', 'Role'],
+      fields:['Email', 'Voyage', 'Team Name', 'Tier', 'Team No.', 'Discord Name', 'Role'],
       filterByFormula: filter,
       view: 'Teamsort - '.concat(voyage) 
     })
@@ -37,7 +37,7 @@ const getVoyageTeam = async (voyage, teamNo) => {
           team_name: `${ record.get('Team Name') }`,
           tier: `${ tierName }`,
           team_no: `${ record.get('Team No.') }`,
-          discord_name: `${ record.get('Discord ID') }`,
+          discord_name: `${ record.get('Discord Name') }`,
           role: `${ record.get('Role') }`,
         })      
       }
