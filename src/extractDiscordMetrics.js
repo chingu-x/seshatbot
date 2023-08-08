@@ -4,11 +4,7 @@ import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
-/*
-const adminIDs = ['jdmedlock#4582', 'Hypno#9777', 'りゆ#8513', 'дилан#7921', 
-  'Uhurubot#3467', 'KiZa19#2591']
-*/
-const adminIDs = ['jdmedlock#4582', 'Hypno#9777', 'Uhurubot#3467']
+const adminIDs = ['jdmedlock', 'Hypno', 'Uhurubot']
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0
@@ -50,8 +46,9 @@ const getTeamNo = (channelName) => {
 // `messageSummary` object for each voyage, team, sprint, and team member.
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
-    //console.log('message: ', message)
-    const discordUserName = message.author.username.concat('#',message.author.discriminator)
+    //console.log('summarizeMessages - message: ', message)
+    const discordUserName = message.author.username
+    //const discordUserName = message.author.username.concat('#',message.author.discriminator)
     if (adminIDs.includes(discordUserName)) {
       resolve()
     }

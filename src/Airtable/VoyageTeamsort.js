@@ -23,6 +23,7 @@ const getVoyageTeam = async (voyage, teamNo) => {
       // Notification Events table
       let voyagerNo = 0
       for (let record of records) {
+        const voyagerDiscordName = record.get('Discord Name').split('#')[0]
         voyagerNo = ++voyagerNo
         const tierName = record.get('Tier')
           .slice(0,6)
@@ -37,7 +38,7 @@ const getVoyageTeam = async (voyage, teamNo) => {
           team_name: `${ record.get('Team Name') }`,
           tier: `${ tierName }`,
           team_no: `${ record.get('Team No.') }`,
-          discord_name: `${ record.get('Discord Name') }`,
+          discord_name: `${ voyagerDiscordName }`,
           role: `${ record.get('Role') }`,
         })      
       }
