@@ -73,11 +73,16 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
         // Add a userMessages entry for any team member who didn't post a
         // message in a sprint & set the email address for all team members
         const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
+        console.log('summarizeMessages - teamMembers: ', teamMembers)
 
         for (let member of teamMembers) {
           for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
             // Add an entry for any team member who posted no messages
             if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
+              // TODO: The Discord user names extracted from the messages 
+              // above don't necessarily match the user names maintained in 
+              // the Voyage Signups table in Discord. To fix this translate
+              // the users unique Discord Id into their user name from Discord
               if (!messageSummary[teamNo][sprintIndex].userMessages.has(member.discord_name)) {
                 messageSummary[teamNo][sprintIndex].userMessages.set(member.discord_name, 0)
               }
@@ -164,6 +169,7 @@ const extractDiscordMetrics = async (environment) => {
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordName, messageCount] of sprint.userMessages) { 
+            console.log(`extractDiscordMetrics - discordName: ${ discordName } messageCount: ${ messageCount }`)
             const userSignupID = sprint.userSignupIDs.get(discordName) 
             if (adminIDs.includes(discordName)) {
               console.log(`...skipping discord name: ${ discordName }`)

@@ -62,6 +62,10 @@ export default class Discord {
     return this.client
   }
 
+  getGuildUser(discordId) {
+    // TODO: Add logic to retrieve the users Discord name using their unique id
+  }
+
   // Get the team channels and their parent categories for the specified Voyage. 
   getTeamChannels(guild, voyageName, categoryRegex, channelRegex) {
     // Locate all the categories for this Voyage
