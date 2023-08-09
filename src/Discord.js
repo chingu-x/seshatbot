@@ -20,6 +20,7 @@ export default class Discord {
       ],
     })
     this.login = this.client.login(process.env.DISCORD_TOKEN)
+    this.guild = null
 
     // Since extraction occurs within the `client.on` block these promises are
     // returned to the extract/audit callers and resolved by calling 
@@ -61,9 +62,22 @@ export default class Discord {
   getDiscordClient() {
     return this.client
   }
-
+    
+  // Retrieve the users Discord name using their unique id
   getGuildUser(discordId) {
-    // TODO: Add logic to retrieve the users Discord name using their unique id
+    return new Promise(async (resolve, reject) => {
+      try {
+        const user = this.guild.members.fetch(discordId)
+        resolve(user)
+      }
+      catch(err) {
+        console.log('='.repeat(30))
+        console.log(`Error retrieving user ${ discordId } from Discord:`)
+        console.log(err)
+        this.client.destroy() // Terminate this Discord bot
+        reject(null)
+      }
+    })
   }
 
   // Get the team channels and their parent categories for the specified Voyage. 
@@ -102,6 +116,10 @@ export default class Discord {
     })
     
     return sortedChannels
+  }
+
+  setGuild(guild) {
+    this.guild = guild
   }
 
 }

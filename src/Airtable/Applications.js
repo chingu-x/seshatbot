@@ -9,7 +9,6 @@ const getApplicationByEmail = async (email) => {
 
     const filter =  
         `{Email} = "${ email }"`
-    console.log('...getApplicationByEmail - filter: ', filter)
 
     base('Applications').select({ 
       filterByFormula: filter,

@@ -4,7 +4,8 @@ import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
-const adminIDs = ['jdmedlock', 'Hypno', 'Uhurubot']
+const adminIDs = ['jdmedlock', 'Hypno', 'Notcori', 'travel_light', 'Uhurubot']
+let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0
@@ -49,6 +50,7 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
     //console.log('summarizeMessages - message: ', message)
     const discordUserName = message.author.username
     //const discordUserName = message.author.username.concat('#',message.author.discriminator)
+    console.log(`summarizeMessages - Extracting metrics for ${ discordUserName }`)
     if (adminIDs.includes(discordUserName)) {
       resolve()
     }
@@ -73,22 +75,21 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
         // Add a userMessages entry for any team member who didn't post a
         // message in a sprint & set the email address for all team members
         const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
-        console.log('summarizeMessages - teamMembers: ', teamMembers)
+        //console.log('summarizeMessages - teamMembers: ', teamMembers)
 
         for (let member of teamMembers) {
+          const discordUser = await discordIntf.getGuildUser(member.discord_id)
+          console.log(`summarizeMessages - Adding absent teammate ${ discordUserName }`)
+
           for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
             // Add an entry for any team member who posted no messages
             if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
-              // TODO: The Discord user names extracted from the messages 
-              // above don't necessarily match the user names maintained in 
-              // the Voyage Signups table in Discord. To fix this translate
-              // the users unique Discord Id into their user name from Discord
-              if (!messageSummary[teamNo][sprintIndex].userMessages.has(member.discord_name)) {
-                messageSummary[teamNo][sprintIndex].userMessages.set(member.discord_name, 0)
+              if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
+                messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, 0)
               }
             }
             // Add the email address to all team members
-            messageSummary[teamNo][sprintIndex].userSignupIDs.set(member.discord_name, member.signup_id)
+            messageSummary[teamNo][sprintIndex].userSignupIDs.set(discordUser.user.username, member.signup_id)
           }
         }
 
@@ -104,12 +105,13 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
 
 // Extract team message metrics from the Discord channels
 const extractDiscordMetrics = async (environment) => {
-  const discordIntf = new Discord(environment)
+  discordIntf = new Discord(environment)
   const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
   const client = discordIntf.getDiscordClient()
   await client.login(DISCORD_TOKEN)
   const guild = await client.guilds.fetch(GUILD_ID)
+  discordIntf.setGuild(guild)
 
   try {
     client.on('ready', async () => {
