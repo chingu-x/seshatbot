@@ -107,13 +107,13 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   // Add a userMessages entry for any team member who didn't post a
   // message in a sprint & set the email address for all team members
   const addAbsentUsers = async (schedule, teamNo, messageSummary) => {
-    console.log(`\naddAbsentUsers - Processing team: ${ teamNo }`)
+    //console.log(`\naddAbsentUsers - Processing team: ${ teamNo }`)
     const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
 
     for (let member of teamMembers) {
       try {
         const discordUser = await discordIntf.getGuildUser(member.discord_id)
-        console.log(`\naddAbsentUsers - Adding absent teammate ${ discordUser }`)
+        //console.log(`\naddAbsentUsers - Adding absent teammate ${ discordUser }`)
         for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
           // Add an entry for any team member who posted no messages
           if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
@@ -206,10 +206,10 @@ const extractDiscordMetrics = async (environment) => {
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordName, messageCount] of sprint.userMessages) { 
-            console.log(`\nextractDiscordMetrics - discordName: ${ discordName } messageCount: ${ messageCount }`)
+            //console.log(`\nextractDiscordMetrics - discordName: ${ discordName } messageCount: ${ messageCount }`)
             const userSignupID = sprint.userSignupIDs.get(discordName) 
             if (adminIDs.includes(discordName)) {
-              console.log(`...skipping discord name: ${ discordName }`)
+              //console.log(`...skipping discord name: ${ discordName }`)
             } else {
               const result = await addUpdateTeamMetrics(sprint.voyage, 
                 sprint.teamNo, sprint.tierName, 
