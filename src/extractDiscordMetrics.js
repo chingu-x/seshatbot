@@ -71,28 +71,6 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
             }
           }
         }
-      /*
-        // Add a userMessages entry for any team member who didn't post a
-        // message in a sprint & set the email address for all team members
-        const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
-        //console.log('summarizeMessages - teamMembers: ', teamMembers)
-
-        for (let member of teamMembers) {
-          const discordUser = await discordIntf.getGuildUser(member.discord_id)
-          console.log(`summarizeMessages - Adding absent teammate ${ discordUserName }`)
-
-          for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
-            // Add an entry for any team member who posted no messages
-            if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
-              if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
-                messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, 0)
-              }
-            }
-            // Add the email address to all team members
-            messageSummary[teamNo][sprintIndex].userSignupIDs.set(discordUser.user.username, member.signup_id)
-          }
-        }
-      */
 
         resolve()
       } catch (err) {
