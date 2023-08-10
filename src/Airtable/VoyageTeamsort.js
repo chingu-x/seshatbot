@@ -1,5 +1,5 @@
 import Airtable from 'airtable'
-import { getApplicationByEmail } from './Applications.js'
+import { getVoyagerDiscordId } from './Applications.js'
 
 // Retrieve all voyagers for a specific Voyage
 const getVoyageTeam = async (voyage, teamNo) => {
@@ -27,25 +27,32 @@ const getVoyageTeam = async (voyage, teamNo) => {
         // the user's unique Discord Id must be retrieve from their Application
         // table row
         const voyagerEmail = record.get('Email')
-        const voyagerDiscordId = await getApplicationByEmail(voyagerEmail)
-        voyagerNo = ++voyagerNo
-        const tierName = record.get('Tier')
-          .slice(0,6)
-          .toLowerCase()
-          .split(' ')
-          .join('')
-        voyagers.push({ 
-          number: `${ voyagerNo }`,
-          signup_id: `${ record.id }`,
-          email: `${ record.get('Email') }`,
-          voyage: `${ record.get('Voyage') }`,
-          team_name: `${ record.get('Team Name') }`,
-          tier: `${ tierName }`,
-          team_no: `${ record.get('Team No.') }`,
-          discord_name: `${ voyagerDiscordName }`,
-          role: `${ record.get('Role') }`,
-          discord_id: `${ voyagerDiscordId }`
-        })      
+        try {
+          const voyagerDiscordId = await getVoyagerDiscordId(voyagerEmail)
+          if (voyagerDiscordId) {
+            voyagerNo = ++voyagerNo
+            const tierName = record.get('Tier')
+              .slice(0,6)
+              .toLowerCase()
+              .split(' ')
+              .join('')
+            voyagers.push({ 
+              number: `${ voyagerNo }`,
+              signup_id: `${ record.id }`,
+              email: `${ record.get('Email') }`,
+              voyage: `${ record.get('Voyage') }`,
+              team_name: `${ record.get('Team Name') }`,
+              tier: `${ tierName }`,
+              team_no: `${ record.get('Team No.') }`,
+              discord_name: `${ voyagerDiscordName }`,
+              role: `${ record.get('Role') }`,
+              discord_id: `${ voyagerDiscordId }`
+            })
+          }
+        }
+        catch(err) {
+          console.log(`getVoyageTeam - Invalid voyagerDiscordId ${ voyagerDiscordId } for ${ voyagerEmail }`)
+        }   
       }
 
       // To fetch the next page of records, call 'fetchNextPage'.
