@@ -119,13 +119,14 @@ const extractDiscordMetrics = async (environment) => {
 
       // Set up the progress bars
       const channelNames = teamChannels.map((channelInfo) => channelInfo.channel.name)
-      let overallProgress = initializeProgressBars('All Channels', channelNames)
+      //let overallProgress = initializeProgressBars('All Channels', channelNames)
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
       const schedule = await getVoyageSchedule(VOYAGE)
       let priorTeamNo = 1
 
+      console.time('fetchAllMessages')
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -164,8 +165,12 @@ const extractDiscordMetrics = async (environment) => {
             summarizeMessages, messageSummary)
         }
       }
+      console.timeLog('fetchAllMessages')
+      console.timeEnd('fetchAllMessages')
+
 
       // Add an entry for users who haven't posted in their channel
+      console.time('addAbsentUsers')
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -173,9 +178,12 @@ const extractDiscordMetrics = async (environment) => {
           await addAbsentUsers(schedule, teamNo, messageSummary)
         }
       }
+      console.timeLog('addAbsentUsers')
+      console.timeEnd('addAbsentUsers')
 
       // Add or update matching rows in Airtable
       let teamNo = 0
+      console.time('Add/Update Airtable')
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordName, messageCount] of sprint.userMessages) { 
@@ -190,19 +198,21 @@ const extractDiscordMetrics = async (environment) => {
         }
 
         // Update the progress bar
-        overallProgress.increment()
-        overallProgress.update(teamNo)
+        //overallProgress.increment()
+        //overallProgress.update(teamNo)
         teamNo += 1
       }
+      console.timeLog('Add/Update Airtable')
+      console.timeEnd('Add/Update Airtable')
 
       // Terminate processing
-      overallProgress.stop()
+      //overallProgress.stop()
       discordIntf.commandResolve('done')
     })
   }
   catch(err) {
     console.log(err)
-    overallProgress.stop()
+    //overallProgress.stop()
     await client.destroy() // Terminate this Discord bot
     discordIntf.commandReject('fail')
   }
@@ -215,7 +225,7 @@ const extractDiscordMetrics = async (environment) => {
   catch (err) {
     console.error(`Error logging into Discord. Token: ${ DISCORD_TOKEN }`)
     console.error(err)
-    overallProgress.stop()
+    //overallProgress.stop()
     discordIntf.commandReject('fail')
   }
 }
