@@ -1,4 +1,5 @@
 import Airtable from 'airtable'
+import { getVoyagerDiscordId } from './Applications.js'
 
 // Retrieve all voyagers for a specific Voyage
 const getVoyageTeam = async (voyage, teamNo) => {
@@ -18,29 +19,40 @@ const getVoyageTeam = async (voyage, teamNo) => {
       filterByFormula: filter,
       view: 'Teamsort - '.concat(voyage) 
     })
-    .eachPage(function page(records, fetchNextPage) {
-      // Return the number of matching events that haven't been sent from the
-      // Notification Events table
+    .eachPage(async function page(records, fetchNextPage) {
       let voyagerNo = 0
       for (let record of records) {
         const voyagerDiscordName = record.get('Discord Name').split('#')[0]
-        voyagerNo = ++voyagerNo
-        const tierName = record.get('Tier')
-          .slice(0,6)
-          .toLowerCase()
-          .split(' ')
-          .join('')
-        voyagers.push({ 
-          number: `${ voyagerNo }`,
-          signup_id: `${ record.id }`,
-          email: `${ record.get('Email') }`,
-          voyage: `${ record.get('Voyage') }`,
-          team_name: `${ record.get('Team Name') }`,
-          tier: `${ tierName }`,
-          team_no: `${ record.get('Team No.') }`,
-          discord_name: `${ voyagerDiscordName }`,
-          role: `${ record.get('Role') }`,
-        })      
+        // Since the Airtable API can't return the values from look up columns
+        // the user's unique Discord Id must be retrieve from their Application
+        // table row
+        const voyagerEmail = record.get('Email')
+        try {
+          const voyagerDiscordId = await getVoyagerDiscordId(voyagerEmail)
+          if (voyagerDiscordId) {
+            voyagerNo = ++voyagerNo
+            const tierName = record.get('Tier')
+              .slice(0,6)
+              .toLowerCase()
+              .split(' ')
+              .join('')
+            voyagers.push({ 
+              number: `${ voyagerNo }`,
+              signup_id: `${ record.id }`,
+              email: `${ record.get('Email') }`,
+              voyage: `${ record.get('Voyage') }`,
+              team_name: `${ record.get('Team Name') }`,
+              tier: `${ tierName }`,
+              team_no: `${ record.get('Team No.') }`,
+              discord_name: `${ voyagerDiscordName }`,
+              role: `${ record.get('Role') }`,
+              discord_id: `${ voyagerDiscordId }`
+            })
+          }
+        }
+        catch(err) {
+          console.log(`getVoyageTeam - Invalid voyagerDiscordId ${ voyagerDiscordId } for ${ voyagerEmail }`)
+        }   
       }
 
       // To fetch the next page of records, call 'fetchNextPage'.
