@@ -189,10 +189,12 @@ const extractDiscordMetrics = async (environment) => {
           for (let [discordName, messageCount] of sprint.userMessages) { 
             const userSignupID = sprint.userSignupIDs.get(discordName) 
             if (!adminIDs.includes(discordName)) {
-              const result = await addUpdateTeamMetrics(sprint.voyage, 
-                sprint.teamNo, sprint.tierName, 
-                sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
-                discordName, messageCount, userSignupID )
+              if (sprint.sprintStartDt !== null) {
+                const result = await addUpdateTeamMetrics(sprint.voyage, 
+                  sprint.teamNo, sprint.tierName, 
+                  sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
+                  discordName, messageCount, userSignupID )
+              }
             }
           }
         }
