@@ -1,7 +1,11 @@
 import Discord from './Discord.js'
 import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
+import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 import initializeProgressBars from './initializeProgressBars.js'
+
+const adminIDs = ['jdmedlock', 'Hypno', 'Notcori', 'travel_light', 'Uhurubot']
+let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
   let sprintNo = 0
@@ -23,10 +27,9 @@ const getSprintInfo = (sprintSchedule, messageTimestamp) => {
 // formatted as `<tier-name>-team-<team-no>`
 const getTierName = (channelName) => {
   const tierNameTranslations = [
-    { animalName: 'Toucans', tierName: 'Tier 1'},
-    { animalName: 'Geckos', tierName: 'Tier 2'},
-    { animalName: 'Bears', tierName: 'Tier 3'},
-    { animalName: 'Chimeras', tierName: 'Tier n'},
+    { animalName: 'Tier1', tierName: 'Tier 1'},
+    { animalName: 'Tier2', tierName: 'Tier 2'},
+    { animalName: 'Tier3', tierName: 'Tier 3'},
   ]
   const tierNameIndex = tierNameTranslations.findIndex(translation => 
     translation.animalName.toLowerCase() === channelName.split('-')[0].toLowerCase()
@@ -42,9 +45,12 @@ const getTeamNo = (channelName) => {
 
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.
-const summarizeMessages = (schedule, teamNo, message, messageSummary) => {
-  //return new Promise(async (resolve, reject) => {
-    const discordUserID = message.author.username.concat('#',message.author.discriminator)
+const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
+  return new Promise(async (resolve, reject) => {
+    const discordUserName = message.author.username
+    if (adminIDs.includes(discordUserName)) {
+      resolve()
+    }
     const sprintInfo = getSprintInfo(
       schedule.sprintSchedule, message.createdTimestamp)
     if (sprintInfo !== null) {
@@ -54,33 +60,57 @@ const summarizeMessages = (schedule, teamNo, message, messageSummary) => {
         messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
         for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
           if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
-            if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserID)) {
-              let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserID) + 1
-              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, userCount)
+            if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserName)) {
+              let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserName) + 1
+              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, userCount)
             } else {
-              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserID, 1)
+              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, 1)
             }
           }
         }
-        //resolve()
-        return
+
+        resolve()
       } catch (err) {
-        console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo } messageSummary: `, messageSummary)
+        console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo }`)
         console.log(err)
-        //reject(err)
+        reject(err)
       }
     }
-  //})
+  })
+}
+
+  // Add a userMessages entry for any team member who didn't post a
+  // message in a sprint & set the email address for all team members
+  const addAbsentUsers = async (schedule, teamNo, messageSummary) => {
+    const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
+
+    for (let member of teamMembers) {
+      try {
+        const discordUser = await discordIntf.getGuildUser(member.discord_id)
+        for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
+          // Add an entry for any team member who posted no messages
+          if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
+            messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, 0)
+          }
+          // Add the email address to all team members
+          messageSummary[teamNo][sprintIndex].userSignupIDs.set(discordUser.user.username, member.signup_id)
+        }
+      }
+      catch(err) {
+        console.log(`\naddAbsentUsers - err: `, err)
+      }
+    }
 }
 
 // Extract team message metrics from the Discord channels
 const extractDiscordMetrics = async (environment) => {
-  const discordIntf = new Discord(environment)
+  discordIntf = new Discord(environment)
   const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
   const client = discordIntf.getDiscordClient()
   await client.login(DISCORD_TOKEN)
   const guild = await client.guilds.fetch(GUILD_ID)
+  discordIntf.setGuild(guild)
 
   try {
     client.on('ready', async () => {
@@ -89,12 +119,14 @@ const extractDiscordMetrics = async (environment) => {
 
       // Set up the progress bars
       const channelNames = teamChannels.map((channelInfo) => channelInfo.channel.name)
-      let overallProgress = initializeProgressBars('All Channels', channelNames)
+      //let overallProgress = initializeProgressBars('All Channels', channelNames)
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
       const schedule = await getVoyageSchedule(VOYAGE)
+      let priorTeamNo = 1
 
+      console.time('fetchAllMessages')
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -105,7 +137,16 @@ const extractDiscordMetrics = async (environment) => {
           // Start by formatting the current team row with an entry for each 
           // sprint. Incoming messages will be tallied here.
           let teamNo = getTeamNo(channel.name)
-          messageSummary.push([]) // Create a new row for the team
+          const gapInTeamNos = teamNo - priorTeamNo
+
+          if (gapInTeamNos === 0) {
+            messageSummary.push([]) // Create a new row for the team
+          } else {
+            for (let i = priorTeamNo + 1; i <= teamNo; i++) {
+              messageSummary.push([]) // Create a new row for the skipped team(s) and the current team
+            }
+          }
+
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             messageSummary[teamNo].push({ 
               voyage: VOYAGE,
@@ -114,40 +155,66 @@ const extractDiscordMetrics = async (environment) => {
               sprintStartDt: null,
               sprintEndDt: null,
               tierName: getTierName(channel.name),
-              userMessages: new Map()
+              userMessages: new Map(),
+              userSignupIDs: new Map()
             })
           }
+          priorTeamNo = teamNo
 
-          await discordIntf.fetchAllMessages(channel, schedule, teamNo, summarizeMessages, messageSummary)
+          await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
+            summarizeMessages, messageSummary)
         }
       }
+      console.timeLog('fetchAllMessages')
+      console.timeEnd('fetchAllMessages')
+
+
+      // Add an entry for users who haven't posted in their channel
+      console.time('addAbsentUsers')
+      for (let channelInfo of teamChannels) {
+        const channel = channelInfo.channel
+        if (channel.type !== 'category') {
+          const teamNo = getTeamNo(channel.name)
+          await addAbsentUsers(schedule, teamNo, messageSummary)
+        }
+      }
+      console.timeLog('addAbsentUsers')
+      console.timeEnd('addAbsentUsers')
 
       // Add or update matching rows in Airtable
       let teamNo = 0
+      console.time('Add/Update Airtable')
       for (let team of messageSummary) {
         for (let sprint of team) {
-          for (let [discordID, messageCount] of sprint.userMessages) {          
-            const result = await addUpdateTeamMetrics(sprint.voyage, 
-              sprint.teamNo, sprint.tierName, 
-              sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
-              discordID, messageCount)
+          for (let [discordName, messageCount] of sprint.userMessages) { 
+            const userSignupID = sprint.userSignupIDs.get(discordName) 
+            if (!adminIDs.includes(discordName)) {
+              if (sprint.sprintStartDt !== null) {
+                const result = await addUpdateTeamMetrics(sprint.voyage, 
+                  sprint.teamNo, sprint.tierName, 
+                  sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
+                  discordName, messageCount, userSignupID )
+              }
+            }
           }
         }
 
         // Update the progress bar
-        overallProgress.increment()
-        overallProgress.update(teamNo)
+        //overallProgress.increment()
+        //overallProgress.update(teamNo)
         teamNo += 1
       }
+      console.timeLog('Add/Update Airtable')
+      console.timeEnd('Add/Update Airtable')
 
       // Terminate processing
-      overallProgress.stop()
+      //overallProgress.stop()
       discordIntf.commandResolve('done')
     })
   }
   catch(err) {
     console.log(err)
-    overallProgress.stop()
+    //overallProgress.stop()
     await client.destroy() // Terminate this Discord bot
     discordIntf.commandReject('fail')
   }
@@ -160,7 +227,7 @@ const extractDiscordMetrics = async (environment) => {
   catch (err) {
     console.error(`Error logging into Discord. Token: ${ DISCORD_TOKEN }`)
     console.error(err)
-    overallProgress.stop()
+    //overallProgress.stop()
     discordIntf.commandReject('fail')
   }
 }

@@ -1,4 +1,4 @@
-import { Client, IntentsBitField } from 'discord.js'
+import { Client, GatewayIntentBits } from 'discord.js'
 
 const GUILD_CATEGORY = 4
 const GUILD_TEXT = 0
@@ -8,9 +8,19 @@ export default class Discord {
     this.environment = environment
     this.isDebug = this.environment.isDebug()
 
+    /*
     const myIntents = new IntentsBitField()
     myIntents.add(IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildPresences, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildMessages)
     this.client = new Client({ intents: myIntents })
+    */
+    this.client = new Client({
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+      ],
+    })
+    this.login = this.client.login(process.env.DISCORD_TOKEN)
+    this.guild = null
 
     // Since extraction occurs within the `client.on` block these promises are
     // returned to the extract/audit callers and resolved by calling 
@@ -35,7 +45,7 @@ export default class Discord {
         const messages = await channel.messages.fetch(fetchOptions)
         if (messages.size > 0) {
           for (let [messageID, message] of messages) {
-            callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
+            await callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
           }
           fetchOptions = { limit: 100, before: messages.last().id }
         } else {
@@ -47,6 +57,27 @@ export default class Discord {
       console.log(err)
       throw new Error(`Error retrieving messages for channel: ${channel.name} ${err}`)
     }
+  }
+
+  getDiscordClient() {
+    return this.client
+  }
+    
+  // Retrieve the users Discord name using their unique id
+  getGuildUser(discordId) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const user = this.guild.members.fetch(discordId)
+        resolve(user)
+      }
+      catch(err) {
+        console.log('='.repeat(30))
+        console.log(`Error retrieving user ${ discordId } from Discord:`)
+        console.log(err)
+        this.client.destroy() // Terminate this Discord bot
+        reject(null)
+      }
+    })
   }
 
   // Get the team channels and their parent categories for the specified Voyage. 
@@ -86,9 +117,9 @@ export default class Discord {
     
     return sortedChannels
   }
-  
-  getDiscordClient() {
-    return this.client
+
+  setGuild(guild) {
+    this.guild = guild
   }
 
 }
