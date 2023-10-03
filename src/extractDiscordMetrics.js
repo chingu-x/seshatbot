@@ -4,7 +4,7 @@ import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 import initializeProgressBars from './initializeProgressBars.js'
 
-const adminIDs = ['jdmedlock', 'Hypno', 'Notcori', 'travel_light', 'Uhurubot']
+const adminIDs = ['jdmedlock', 'hypno', 'Notcori', 'travel_light', 'Uhurubot', 'Chingu']
 let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
