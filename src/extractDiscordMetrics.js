@@ -3,11 +3,7 @@ import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 
-<<<<<<< HEAD
 const adminIDs = ['jdmedlock', 'hypno', 'Notcori', 'travel_light', 'Uhurubot', 'Chingu']
-=======
-const adminIDs = ['chingu', 'jdmedlock', 'hypno', 'notcori', 'travel_light', 'uhurubot']
->>>>>>> d947f547648c6f75db8019909e9461ceec52c5d8
 let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
