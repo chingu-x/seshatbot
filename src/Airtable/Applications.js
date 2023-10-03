@@ -9,8 +9,6 @@ const getVoyagerDiscordId = async (email) => {
 
     const filter =  
         `{Email} = "${ email }"`
-    //console.log(`getApplicationByEmail - Processing email: ${ email }`)
-
 
     base('Applications').select({ 
       filterByFormula: filter,

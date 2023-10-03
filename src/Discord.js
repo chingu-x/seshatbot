@@ -8,11 +8,6 @@ export default class Discord {
     this.environment = environment
     this.isDebug = this.environment.isDebug()
 
-    /*
-    const myIntents = new IntentsBitField()
-    myIntents.add(IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildPresences, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildMessages)
-    this.client = new Client({ intents: myIntents })
-    */
     this.client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
