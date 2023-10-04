@@ -3,7 +3,7 @@ import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
 
-const adminIDs = ['jdmedlock', 'hypno', 'Notcori', 'travel_light', 'Uhurubot', 'Chingu']
+const adminIDs = ['jdmedlock', 'hypno', 'notcori', 'travel_light', 'Uhurubot', 'Chingu']
 let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
@@ -47,7 +47,7 @@ const getTeamNo = (channelName) => {
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
     const discordUserName = message.author.username
-    if (adminIDs.includes(discordUserName.toLowerCase())) {
+    if (adminIDs.includes(discordUserName)) {
       resolve()
     }
     const sprintInfo = getSprintInfo(
