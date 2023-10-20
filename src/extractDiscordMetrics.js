@@ -47,7 +47,7 @@ const getTeamNo = (channelName) => {
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
     const discordUserName = message.author.username
-    if (adminIDs.includes(discordUserName).toLowerCase()) {
+    if (adminIDs.includes(discordUserName.toLowerCase())) {
       resolve()
     }
     const sprintInfo = getSprintInfo(
@@ -183,7 +183,7 @@ const extractDiscordMetrics = async (environment) => {
         for (let sprint of team) {
           for (let [discordName, messageCount] of sprint.userMessages) { 
             const userSignupID = sprint.userSignupIDs.get(discordName) 
-            if (!adminIDs.includes(discordName)) {
+            if (!adminIDs.includes(discordName.toLowerCase())) {
               if (sprint.sprintStartDt !== null) {
                 const result = await addUpdateTeamMetrics(sprint.voyage, 
                   sprint.teamNo, sprint.tierName, 
