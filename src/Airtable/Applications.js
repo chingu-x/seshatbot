@@ -37,6 +37,7 @@ const getVoyagerDiscordId = async (email) => {
 // date range
 const getApplicationCountByDate = async (metricStartDate, metricEndDate) => {
   return new Promise(async (resolve, reject) => {
+    let applicationCount = 0
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
 
     const filter = "AND(" + 
@@ -48,6 +49,22 @@ const getApplicationCountByDate = async (metricStartDate, metricEndDate) => {
       filterByFormula: filter,
       view: 'Applications' 
     })
+    .eachPage(async function page(records, fetchNextPage) {
+      applicationCount += records.length
+      
+      // To fetch the next page of records, call 'fetchNextPage'.
+      // If there are more records, 'page' will get called again.
+      // If there are no more records, 'done' will get called.
+      fetchNextPage()
+    }, function done(err) {
+      if (err) { 
+        console.error('getVoyageTeam - filter: ', filter)
+        console.error(err) 
+        reject(err) 
+      }
+      resolve(applicationCount)
+    })
+    /*
     .firstPage((err, records) => {
       if (err) { 
         console.error('filter: ', filter)
@@ -62,6 +79,7 @@ const getApplicationCountByDate = async (metricStartDate, metricEndDate) => {
       }
       resolve(0)
     })
+    */
   })
 }
 
