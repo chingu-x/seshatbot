@@ -105,6 +105,7 @@ const addUpdateWebsiteMetrics = async (metricStartDate, metricEndDate,
   pageVisitCount, applyClickCount) => {
   
   return new Promise(async (resolve, reject) => {
+    console.log('applyClickCount: ', applyClickCount)
     let recordID = await getWebsiteMetric(metricStartDate, metricEndDate)
     let applicationFormCount = await getApplicationCountByDate(metricStartDate, metricEndDate)
     console.log(`addUpdateWebsiteMetrics - applicationFormCount: ${applicationFormCount}`)
