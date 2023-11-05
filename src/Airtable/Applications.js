@@ -64,22 +64,6 @@ const getApplicationCountByDate = async (metricStartDate, metricEndDate) => {
       }
       resolve(applicationCount)
     })
-    /*
-    .firstPage((err, records) => {
-      if (err) { 
-        console.error('filter: ', filter)
-        console.error(err) 
-        reject(err) 
-      }
-
-      // Return the number of Applications submitted in this date range
-      if (records !== null && records !== undefined) {
-        console.log(`records.length: `, records.length)
-        resolve(records.length)
-      }
-      resolve(0)
-    })
-    */
   })
 }
 
