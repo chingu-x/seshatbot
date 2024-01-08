@@ -39,6 +39,7 @@ const getTierName = (channelName) => {
 // Extract the team number from the Discord channel name. Channel names must be
 // formatted as `<tier-name>-team-<team-no>`
 const getTeamNo = (channelName) => {
+  console.log('channelName: ', channelName)
   return parseInt(channelName.split('-')[2])
 }
 
@@ -115,6 +116,10 @@ const extractDiscordMetrics = async (environment) => {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
       const teamChannels = discordIntf.getTeamChannels(guild, VOYAGE, CATEGORY, CHANNEL)
+      for (let channelInfo of teamChannels) {
+        const channel = channelInfo.channel
+        console.log(`channel - name: ${ channel.name } type: ${ channel.type }`)
+      }
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
@@ -133,7 +138,9 @@ const extractDiscordMetrics = async (environment) => {
           // Start by formatting the current team row with an entry for each 
           // sprint. Incoming messages will be tallied here.
           let teamNo = getTeamNo(channel.name)
+          console.log('teamNo: ', teamNo)
           const gapInTeamNos = teamNo - priorTeamNo
+          console.log('priorTeamNo: ', priorTeamNo, ' gapInTeamNos: ', gapInTeamNos)
 
           if (gapInTeamNos === 0) {
             messageSummary.push([]) // Create a new row for the team
@@ -142,6 +149,7 @@ const extractDiscordMetrics = async (environment) => {
               messageSummary.push([]) // Create a new row for the skipped team(s) and the current team
             }
           }
+          console.log('messageSummary: ', messageSummary)
 
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             messageSummary[teamNo].push({ 
