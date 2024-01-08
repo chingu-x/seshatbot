@@ -119,6 +119,7 @@ const extractDiscordMetrics = async (environment) => {
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
       const schedule = await getVoyageSchedule(VOYAGE)
+      console.log('schedule: ', schedule)
       let priorTeamNo = 1
 
       console.time('fetchAllMessages')

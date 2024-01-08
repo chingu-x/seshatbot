@@ -104,7 +104,7 @@ You can find what changed, when in the [release history](./docs/RELEASE_HISTORY.
 
 ## License
 
-Copyright 2021 &copy; Chingu, Inc.
+Copyright 2023 &copy; Chingu, Inc.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
