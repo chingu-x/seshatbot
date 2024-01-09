@@ -2,6 +2,8 @@ import { Client, GatewayIntentBits } from 'discord.js'
 
 const GUILD_CATEGORY = 4
 const GUILD_TEXT = 0
+const GUILD_PUBLIC_THREAD = 11
+const GUILD_FORUM = 15
 export default class Discord {
   
   constructor(environment) {
@@ -37,7 +39,7 @@ export default class Discord {
     let fetchOptions = { limit: 100 }
     try {
       do {
-        const messages = await channel.messages.fetch(fetchOptions)
+        const messages = await channel.messages.cache.fetch(fetchOptions)
         if (messages.size > 0) {
           for (let [messageID, message] of messages) {
             await callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
@@ -76,39 +78,51 @@ export default class Discord {
   }
 
   // Get the team channels and their parent categories for the specified Voyage. 
-  getTeamChannels(guild, voyageName, categoryRegex, channelRegex) {
+  async getTeamChannels(client, guild, voyageName, categoryRegex, channelRegex) {
     // Locate all the categories for this Voyage
     let voyageCategories = []
-    guild.channels.cache.forEach((channel) => {
+    const guildChannels = Array.from(client.channels.cache)
+    for (let guildChannel of guildChannels) {
+      const channel = await client.channels.fetch(guildChannel[0], {force: true})
       if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
         voyageCategories.push(channel)
       }
-    })
+    }
 
     // Retrieve the list of channels for this Voyage
     let voyageChannels = []
-    guild.channels.cache.forEach((channel) => {
+    for (let guildChannel of guildChannels) {
+      const channel = await client.channels.cache.get(guildChannel[0])
       const category = voyageCategories.find((category) => channel.parentId === category.id)
       if (category !== undefined && channel.type === GUILD_TEXT) {
-        voyageChannels.push({ channel: channel, category: category })
+        voyageChannels.push({ channel: channel, category: category, threadChannel: null })
+      } else if (channel.type === GUILD_PUBLIC_THREAD) {
+        // Posts in forum channels are made in public threads. To get the 
+        // forum channel follow the `parentId` attribute to navigate back to the
+        // forum channel object.
+        const forumChannel = await guild.channels.cache.get(channel.parentId)
+        voyageChannels.push({ channel: forumChannel, category: category, threadChannel: channel })
       }
-    })
+    }
 
     // Sort the team channels by their names 
-    let sortedChannels = voyageChannels
-    .reduce((channels, channel) => {
-      const result = channel.channel.name.match(channelRegex)
-      if (result !== null) {
-        channels.push(channel)
+    let sortedChannels = []
+    for (let channel of voyageChannels) {
+      if (channel.channel !== null && channel.channel !== undefined) {
+        const result = channel.channel.name.match(channelRegex)
+        if (result !== null) {
+          sortedChannels.push(channel)
+        }
       }
-      return channels
-    }, [])
-    .sort((a, b) => {
+    }
+    sortedChannels.sort((a, b) => {
       // Sort in ascending team number sequence
       return parseInt(a.channel.name.substr(a.channel.name.length - 2)) >= parseInt(b.channel.name.substr(b.channel.name.length - 2)) 
         ? 1 
         : -1
     })
+
+    console.log('sortedChannels: ', sortedChannels)
     
     return sortedChannels
   }

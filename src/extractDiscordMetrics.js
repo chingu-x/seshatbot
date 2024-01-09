@@ -104,6 +104,7 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
 
 // Extract team message metrics from the Discord channels
 const extractDiscordMetrics = async (environment) => {
+  console.log('connecting to Discord')
   discordIntf = new Discord(environment)
   const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
@@ -111,14 +112,16 @@ const extractDiscordMetrics = async (environment) => {
   await client.login(DISCORD_TOKEN)
   const guild = await client.guilds.fetch(GUILD_ID)
   discordIntf.setGuild(guild)
+  console.log('connection to Discord established')
 
   try {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
-      const teamChannels = discordIntf.getTeamChannels(guild, VOYAGE, CATEGORY, CHANNEL)
+      console.log('preparing to get team channels')
+      const teamChannels = await discordIntf.getTeamChannels(client, guild, VOYAGE, CATEGORY, CHANNEL)
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
-        console.log(`channel - name: ${ channel.name } type: ${ channel.type }`)
+        console.log(`extractDiscordMetrics - channel - name: ${ channel.name } type: ${ channel.type }`)
       }
 
       // Count the number of messages for each team member in each team channel
@@ -128,6 +131,7 @@ const extractDiscordMetrics = async (environment) => {
       let priorTeamNo = 1
 
       console.time('fetchAllMessages')
+      console.log('preparing to fetch messages')
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -165,8 +169,10 @@ const extractDiscordMetrics = async (environment) => {
           }
           priorTeamNo = teamNo
 
-          await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
-            summarizeMessages, messageSummary)
+          if (channel.type !== GUILD_FORUM) {
+            await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
+              summarizeMessages, messageSummary)
+          }
         }
       }
       console.timeLog('fetchAllMessages')
@@ -175,6 +181,7 @@ const extractDiscordMetrics = async (environment) => {
 
       // Add an entry for users who haven't posted in their channel
       console.time('addAbsentUsers')
+      console.log('preparing to add absent users')
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -188,6 +195,7 @@ const extractDiscordMetrics = async (environment) => {
       // Add or update matching rows in Airtable
       let teamNo = 0
       console.time('Add/Update Airtable')
+      console.log('preparing to update Airtable')
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordName, messageCount] of sprint.userMessages) { 
