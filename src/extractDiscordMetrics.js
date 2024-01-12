@@ -2,8 +2,9 @@ import Discord from './Discord.js'
 import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
+import { GUILD_TEXT, GUILD_FORUM, ADMIN_IDS } from './util/constants.js'
 
-const adminIDs = ['jdmedlock', 'hypno', 'notcori', 'travel_light', 'uhurubot', 'chingu']
+
 let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
@@ -48,7 +49,7 @@ const getTeamNo = (channelName) => {
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
     const discordUserName = message.author.username
-    if (adminIDs.includes(discordUserName.toLowerCase())) {
+    if (ADMIN_IDS.includes(discordUserName.toLowerCase())) {
       resolve()
     }
     const sprintInfo = getSprintInfo(
@@ -104,25 +105,23 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
 
 // Extract team message metrics from the Discord channels
 const extractDiscordMetrics = async (environment) => {
-  console.log('connecting to Discord')
+  console.log('Connecting to Discord...')
   discordIntf = new Discord(environment)
   const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
   const client = discordIntf.getDiscordClient()
   await client.login(DISCORD_TOKEN)
+  console.log('Discord client established...')
+
   const guild = await client.guilds.fetch(GUILD_ID)
   discordIntf.setGuild(guild)
-  console.log('connection to Discord established')
+  console.log('Connection to Discord established...')
 
   try {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
-      console.log('preparing to get team channels')
+      console.log('Preparing to get team channels...')
       const teamChannels = await discordIntf.getTeamChannels(client, guild, VOYAGE, CATEGORY, CHANNEL)
-      for (let channelInfo of teamChannels) {
-        const channel = channelInfo.channel
-        console.log(`extractDiscordMetrics - channel - name: ${ channel.name } type: ${ channel.type }`)
-      }
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
@@ -131,7 +130,7 @@ const extractDiscordMetrics = async (environment) => {
       let priorTeamNo = 1
 
       console.time('fetchAllMessages')
-      console.log('preparing to fetch messages')
+      console.log('Preparing to fetch messages...')
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -142,9 +141,7 @@ const extractDiscordMetrics = async (environment) => {
           // Start by formatting the current team row with an entry for each 
           // sprint. Incoming messages will be tallied here.
           let teamNo = getTeamNo(channel.name)
-          console.log('teamNo: ', teamNo)
           const gapInTeamNos = teamNo - priorTeamNo
-          console.log('priorTeamNo: ', priorTeamNo, ' gapInTeamNos: ', gapInTeamNos)
 
           if (gapInTeamNos === 0) {
             messageSummary.push([]) // Create a new row for the team
@@ -153,7 +150,6 @@ const extractDiscordMetrics = async (environment) => {
               messageSummary.push([]) // Create a new row for the skipped team(s) and the current team
             }
           }
-          console.log('messageSummary: ', messageSummary)
 
           for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
             messageSummary[teamNo].push({ 
@@ -163,15 +159,27 @@ const extractDiscordMetrics = async (environment) => {
               sprintStartDt: null,
               sprintEndDt: null,
               tierName: getTierName(channel.name),
+              threadChannel: channelInfo.threadChannel?.id,
               userMessages: new Map(),
               userSignupIDs: new Map()
             })
           }
           priorTeamNo = teamNo
 
-          if (channel.type !== GUILD_FORUM) {
+          if (channel.type === GUILD_TEXT) {
             await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
               summarizeMessages, messageSummary)
+          } else if (channel.type === GUILD_FORUM) {
+            for (let teamChannel of messageSummary[teamNo]) {
+              console.log('Thread channel: ', teamChannel.threadChannel)
+              const threadChannel = await discordIntf.getChannel(teamChannel.threadChannel)
+              console.log('threadChannel: ', threadChannel)
+              await discordIntf.fetchAllMessages(threadChannel, schedule, teamNo, 
+                summarizeMessages, messageSummary)
+            }
+          } else {
+            console.log('Invalid channel type encountered - channel: ', channel)
+            throw new Error('Invalid channel type encountered - channel: ', channel)
           }
         }
       }
@@ -181,7 +189,7 @@ const extractDiscordMetrics = async (environment) => {
 
       // Add an entry for users who haven't posted in their channel
       console.time('addAbsentUsers')
-      console.log('preparing to add absent users')
+      console.log('Preparing to add absent users...')
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -195,12 +203,12 @@ const extractDiscordMetrics = async (environment) => {
       // Add or update matching rows in Airtable
       let teamNo = 0
       console.time('Add/Update Airtable')
-      console.log('preparing to update Airtable')
+      console.log('Preparing to update Airtable...')
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordName, messageCount] of sprint.userMessages) { 
             const userSignupID = sprint.userSignupIDs.get(discordName) 
-            if (!adminIDs.includes(discordName.toLowerCase())) {
+            if (!ADMIN_IDS.includes(discordName.toLowerCase())) {
               if (sprint.sprintStartDt !== null) {
                 const result = await addUpdateTeamMetrics(sprint.voyage, 
                   sprint.teamNo, sprint.tierName, 

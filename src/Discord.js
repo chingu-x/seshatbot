@@ -1,9 +1,5 @@
 import { Client, GatewayIntentBits } from 'discord.js'
-
-const GUILD_CATEGORY = 4
-const GUILD_TEXT = 0
-const GUILD_PUBLIC_THREAD = 11
-const GUILD_FORUM = 15
+import { GUILD_CATEGORY, GUILD_TEXT, GUILD_PUBLIC_THREAD} from './util/constants.js'
 export default class Discord {
   
   constructor(environment) {
@@ -16,7 +12,7 @@ export default class Discord {
         GatewayIntentBits.GuildMembers,
       ],
     })
-    this.login = this.client.login(process.env.DISCORD_TOKEN)
+    this.login = null
     this.guild = null
 
     // Since extraction occurs within the `client.on` block these promises are
@@ -31,15 +27,20 @@ export default class Discord {
     })
   }
 
+  async getChannel(channelId) {
+    return await this.client.channels.fetch(channelId)
+  }
+
   // Fetch all messages from the selected Discord team channels.
   // Note that the `callback` routine is invoked for each message to
   // accumulate any desired metrics.
   async fetchAllMessages(channel, schedule, teamNo, callback, messageSummary) {
+    console.log(`...fetchAllMessages - teamNo: ${ teamNo }`)
     let isMoreMessages = true
     let fetchOptions = { limit: 100 }
     try {
       do {
-        const messages = await channel.messages.cache.fetch(fetchOptions)
+        const messages = await channel.messages.fetch(fetchOptions)
         if (messages.size > 0) {
           for (let [messageID, message] of messages) {
             await callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
@@ -83,7 +84,7 @@ export default class Discord {
     let voyageCategories = []
     const guildChannels = Array.from(client.channels.cache)
     for (let guildChannel of guildChannels) {
-      const channel = await client.channels.fetch(guildChannel[0], {force: true})
+      const channel = await client.channels.fetch(guildChannel[0])
       if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
         voyageCategories.push(channel)
       }
@@ -121,8 +122,6 @@ export default class Discord {
         ? 1 
         : -1
     })
-
-    console.log('sortedChannels: ', sortedChannels)
     
     return sortedChannels
   }
