@@ -56,6 +56,7 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
       schedule.sprintSchedule, message.createdTimestamp)
     if (sprintInfo !== null) {
       const { sprintNo, sprintStartDt, sprintEndDt } = sprintInfo
+      console.log('summarizeMessages - teamNo: ', teamNo, ' sprintNo: ', sprintNo, 'message: ', message.author.username)
       try {
         messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
         messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
@@ -69,7 +70,10 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
             }
           }
         }
-
+        const summaryInfo = messageSummary[teamNo][sprintNo]
+        console.log(`summarizeMessages - messageSummary[teamNo][sprintNo] - teamNo: ${ summaryInfo.teamNo } \
+sprintNo: ${ summaryInfo.sprintNo } parentChannel.name: ${ summaryInfo.parentChannel.name} \
+threadChannel: ${ summaryInfo.threadChannel } userMessages: `, summaryInfo.userMessages)
         resolve()
       } catch (err) {
         console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo }`)
@@ -159,6 +163,7 @@ const extractDiscordMetrics = async (environment) => {
               sprintStartDt: null,
               sprintEndDt: null,
               tierName: getTierName(channel.name),
+              parentChannel: channel,
               threadChannel: channelInfo.threadChannel?.id,
               userMessages: new Map(),
               userSignupIDs: new Map()
@@ -171,9 +176,8 @@ const extractDiscordMetrics = async (environment) => {
               summarizeMessages, messageSummary)
           } else if (channel.type === GUILD_FORUM) {
             for (let teamChannel of messageSummary[teamNo]) {
-              console.log('Thread channel: ', teamChannel.threadChannel)
               const threadChannel = await discordIntf.getChannel(teamChannel.threadChannel)
-              console.log('threadChannel: ', threadChannel)
+              console.log('teamChannel: ', teamChannel.parentChannel.name, ' threadChannel: ', threadChannel.name)
               await discordIntf.fetchAllMessages(threadChannel, schedule, teamNo, 
                 summarizeMessages, messageSummary)
             }
