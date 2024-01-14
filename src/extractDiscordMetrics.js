@@ -122,7 +122,7 @@ const extractDiscordMetrics = async (environment) => {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
       console.log('Preparing to get team channels...')
-      const teamChannels = await discordIntf.getTeamChannels(client, guild, VOYAGE, CATEGORY, CHANNEL)
+      const teamChannels = await discordIntf.getTeamChannels(VOYAGE, CATEGORY, CHANNEL)
       /*
       for (let teamChannel of teamChannels) {
         console.log(`teamChannel - channel: ${ teamChannel.channel.id } : ${ teamChannel.channel.name } threadChannel: ${ teamChannel.threadChannel.id } : ${ teamChannel.threadChannel.name } category: ${ teamChannel.category?.id } : ${ teamChannel.category?.name }`)
@@ -178,7 +178,7 @@ const extractDiscordMetrics = async (environment) => {
               summarizeMessages, messageSummary)
           } else if (channel.type === GUILD_FORUM) {
             for (let teamChannel of messageSummary[teamNo]) {
-              console.log('teamChannel: ', teamChannel.parentChannel.name, ' threadChannel: ', teamChannel.threadChannel.name)
+              //console.log('teamChannel: ', teamChannel.parentChannel.name, ' threadChannel: ', teamChannel.threadChannel.name)
               const threadChannel = await discordIntf.getChannel(teamChannel.threadChannel)
               await discordIntf.fetchAllMessages(threadChannel, schedule, teamNo, 
                 summarizeMessages, messageSummary)
