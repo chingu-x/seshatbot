@@ -123,9 +123,11 @@ const extractDiscordMetrics = async (environment) => {
       // Create a list of the team channels to be processed
       console.log('Preparing to get team channels...')
       const teamChannels = await discordIntf.getTeamChannels(client, guild, VOYAGE, CATEGORY, CHANNEL)
+      /*
       for (let teamChannel of teamChannels) {
         console.log(`teamChannel - channel: ${ teamChannel.channel.id } : ${ teamChannel.channel.name } threadChannel: ${ teamChannel.threadChannel.id } : ${ teamChannel.threadChannel.name } category: ${ teamChannel.category?.id } : ${ teamChannel.category?.name }`)
       }
+      */
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused

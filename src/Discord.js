@@ -10,7 +10,8 @@ export default class Discord {
       intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
-      ],
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,      ],
     })
     this.login = null
     this.guild = null
@@ -25,13 +26,6 @@ export default class Discord {
       this.commandResolve = resolve
       this.commandReject = reject
     })
-  }
-
-  async getChannel(channel) {
-    if (channel === null || channel === undefined) {
-      return -1
-    }
-    return await this.client.channels.fetch(channel.id)
   }
 
   // Fetch all messages from the selected Discord team channels.
@@ -59,6 +53,38 @@ export default class Discord {
     }
   }
 
+  // Retrieve the parent category object for either a text or thread channel
+  async getCategoryFromChannel(channel) {
+    if (channel === null || channel === undefined) {
+      return -1
+    }
+    if (channel.type !== GUILD_TEXT || channel.type !== GUILD_PUBLIC_THREAD) {
+      return -1
+    }
+    
+    // Return the category parent object for a text channel
+    if (channel.type === GUILD_TEXT) {
+      return channel.parent
+    }
+
+    // For a public thread we need to retrieve the parent forum channel and
+    // return it's parent category object
+    const parentForumChannel = channel.parent
+    if (parentForumChannel !== GUILD_TEXT) {
+      console.error('Discord - getCategoryFromChannel - public thread parent is not a text channel parentForumChannel: ', parentForumChannel)
+      throw new Error('Discord - getCategoryFromChannel - public thread parent is not a text channel parentForumChannel: ', parentForumChannel)
+    }
+    return parentForumChannel.parent
+  }
+
+  // Retrieve the channel object for a specific channel id
+  async getChannel(channel) {
+    if (channel === null || channel === undefined) {
+      return -1
+    }
+    return await this.client.channels.fetch(channel.id)
+  }
+
   getDiscordClient() {
     return this.client
   }
@@ -70,10 +96,10 @@ export default class Discord {
         const user = this.guild.members.fetch(discordId)
         resolve(user)
       }
-      catch(err) {
-        console.log('='.repeat(30))
-        console.log(`Error retrieving user ${ discordId } from Discord:`)
-        console.log(err)
+      catch(error) {
+        console.error('='.repeat(30))
+        console.error(`Error retrieving user ${ discordId } from Discord:`)
+        console.error(err)
         this.client.destroy() // Terminate this Discord bot
         reject(null)
       }
@@ -84,10 +110,12 @@ export default class Discord {
   async getTeamChannels(client, guild, voyageName, categoryRegex, channelRegex) {
     // Locate all the categories for this Voyage
     let voyageCategories = []
-    const guildChannels = Array.from(client.channels.cache)
+    const guildChannels = Array.from(guild.channels.cache)
+    //console.log(guildChannels)
     for (let guildChannel of guildChannels) {
-      const channel = await client.channels.fetch(guildChannel[0])
-      if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
+      const channel = guildChannel[1]
+      if (guildChannel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
+        console.log('channel: ', channel)
         voyageCategories.push(channel)
       }
     }
@@ -96,10 +124,25 @@ export default class Discord {
     let voyageChannels = []
     for (let guildChannel of guildChannels) {
       const channel = await client.channels.cache.get(guildChannel[0])
-      const category = voyageCategories.find((category) => channel.parentId === category.id)
+      // TODO: The following won't work for thread channels. In them the parent
+      // is the forum channel and it's parent is the category.
+      //const category = voyageCategories.find((category) => channel.parentId === category.id)
+      let category = null
+      try {
+        const parentCategory = this.getCategoryFromChannel(channel)
+        if (parentCategory === -1) {
+          throw new Error('Discord - getTeamChannels - category not found in channel:', channel)
+        }
+        category = voyageCategories.find((category) => category.id === parentCategory.id)
+      }
+      catch(error) {
+        console.error('='.repeat(30))
+        console.error(err)
+        this.client.destroy() // Terminate this Discord bot
+      }
       if (category !== undefined && channel.type === GUILD_TEXT) {
         voyageChannels.push({ channel: channel, category: category, threadChannel: null })
-      } else if (channel.type === GUILD_PUBLIC_THREAD) {
+      } else if (category !== undefined && channel.type === GUILD_PUBLIC_THREAD) {
         // Posts in forum channels are made in public threads. To get the 
         // forum channel follow the `parentId` attribute to navigate back to the
         // forum channel object.
