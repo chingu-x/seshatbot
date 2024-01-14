@@ -54,7 +54,7 @@ export default class Discord {
   }
 
   // Retrieve the parent category object for either a text or thread channel
-  async getCategoryFromChannel(channel) {
+  getCategoryFromChannel(channel) {
     if (channel === null || channel === undefined) {
       return -1
     }
@@ -123,7 +123,7 @@ export default class Discord {
     // Retrieve the list of channels for this Voyage
     let voyageChannels = []
     for (let guildChannel of guildChannels) {
-      const channel = await client.channels.cache.get(guildChannel[0])
+      const channel = await guild.channels.cache.get(guildChannel[0])
       // TODO: The following won't work for thread channels. In them the parent
       // is the forum channel and it's parent is the category.
       //const category = voyageCategories.find((category) => channel.parentId === category.id)
@@ -133,11 +133,12 @@ export default class Discord {
         if (parentCategory === -1) {
           throw new Error('Discord - getTeamChannels - category not found in channel:', channel)
         }
+        console.log('parentCategory: ', parentCategory)
         category = voyageCategories.find((category) => category.id === parentCategory.id)
       }
       catch(error) {
         console.error('='.repeat(30))
-        console.error(err)
+        console.error(error)
         this.client.destroy() // Terminate this Discord bot
       }
       if (category !== undefined && channel.type === GUILD_TEXT) {
