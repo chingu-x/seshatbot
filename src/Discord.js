@@ -62,7 +62,7 @@ export default class Discord {
       return -1
     }
     
-    const parentChannel = await this.getChannel(channel.parentId)
+    const parentChannel =  await this.getChannel(channel.parentId)
 
     // Return the category parent object for a public thread channel
     if (channel.type === GUILD_PUBLIC_THREAD) {
