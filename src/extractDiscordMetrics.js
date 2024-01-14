@@ -40,7 +40,7 @@ const getTierName = (channelName) => {
 // Extract the team number from the Discord channel name. Channel names must be
 // formatted as `<tier-name>-team-<team-no>`
 const getTeamNo = (channelName) => {
-  console.log('channelName: ', channelName)
+  console.log('getTeamNo - channelName: ', channelName)
   return parseInt(channelName.split('-')[2])
 }
 
@@ -56,7 +56,7 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
       schedule.sprintSchedule, message.createdTimestamp)
     if (sprintInfo !== null) {
       const { sprintNo, sprintStartDt, sprintEndDt } = sprintInfo
-      console.log('summarizeMessages - teamNo: ', teamNo, ' sprintNo: ', sprintNo, 'message: ', message.author.username)
+      console.log('summarizeMessages - teamNo: ', teamNo, ' sprintNo: ', sprintNo, ' author: ', message.author.username, ' content: ', message.content.slice(0,20) )
       try {
         messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
         messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
@@ -71,9 +71,6 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
           }
         }
         const summaryInfo = messageSummary[teamNo][sprintNo]
-        console.log(`summarizeMessages - messageSummary[teamNo][sprintNo] - teamNo: ${ summaryInfo.teamNo } \
-sprintNo: ${ summaryInfo.sprintNo } parentChannel.name: ${ summaryInfo.parentChannel.name} \
-threadChannel: ${ summaryInfo.threadChannel } userMessages: `, summaryInfo.userMessages)
         resolve()
       } catch (err) {
         console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo }`)
@@ -126,6 +123,9 @@ const extractDiscordMetrics = async (environment) => {
       // Create a list of the team channels to be processed
       console.log('Preparing to get team channels...')
       const teamChannels = await discordIntf.getTeamChannels(client, guild, VOYAGE, CATEGORY, CHANNEL)
+      for (let teamChannel of teamChannels) {
+        console.log(`teamChannel - channel: ${ teamChannel.channel.id } : ${ teamChannel.channel.name } threadChannel: ${ teamChannel.threadChannel.id } : ${ teamChannel.threadChannel.name } category: ${ teamChannel.category?.id } : ${ teamChannel.category?.name }`)
+      }
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
@@ -164,7 +164,7 @@ const extractDiscordMetrics = async (environment) => {
               sprintEndDt: null,
               tierName: getTierName(channel.name),
               parentChannel: channel,
-              threadChannel: channelInfo.threadChannel?.id,
+              threadChannel: channelInfo.threadChannel,
               userMessages: new Map(),
               userSignupIDs: new Map()
             })
@@ -176,8 +176,8 @@ const extractDiscordMetrics = async (environment) => {
               summarizeMessages, messageSummary)
           } else if (channel.type === GUILD_FORUM) {
             for (let teamChannel of messageSummary[teamNo]) {
+              console.log('teamChannel: ', teamChannel.parentChannel.name, ' threadChannel: ', teamChannel.threadChannel.name)
               const threadChannel = await discordIntf.getChannel(teamChannel.threadChannel)
-              console.log('teamChannel: ', teamChannel.parentChannel.name, ' threadChannel: ', threadChannel.name)
               await discordIntf.fetchAllMessages(threadChannel, schedule, teamNo, 
                 summarizeMessages, messageSummary)
             }

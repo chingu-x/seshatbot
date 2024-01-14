@@ -27,15 +27,17 @@ export default class Discord {
     })
   }
 
-  async getChannel(channelId) {
-    return await this.client.channels.fetch(channelId)
+  async getChannel(channel) {
+    if (channel === null || channel === undefined) {
+      return -1
+    }
+    return await this.client.channels.fetch(channel.id)
   }
 
   // Fetch all messages from the selected Discord team channels.
   // Note that the `callback` routine is invoked for each message to
   // accumulate any desired metrics.
   async fetchAllMessages(channel, schedule, teamNo, callback, messageSummary) {
-    console.log(`...fetchAllMessages - teamNo: ${ teamNo }`)
     let isMoreMessages = true
     let fetchOptions = { limit: 100 }
     try {
