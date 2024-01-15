@@ -55,6 +55,11 @@ export default class Discord {
 
   // Retrieve the parent category object for either a text or thread channel
   async getCategoryFromChannel(channel) {
+    console.log(`getCategoryFromChannel - channel: ${ channel.type }/${ channel.id }/${ channel.name } parent: ${ channel.parentId } no. members: ${ channel.members.length } threads: ${ channel.threads }`)
+    if (channel.type === 4) {
+      const childManager = channel.children
+      console.log(`getCategoryFromChannel - childManager.cache: `, childManager.cache)
+    }
     if (channel === null || channel === undefined) {
       return -1
     }
@@ -110,16 +115,16 @@ export default class Discord {
   async getTeamChannels(voyageName, categoryRegex, channelRegex) {
     // Locate all the categories for this Voyage
     let voyageCategories = []
-    const guildChannels = Array.from(this.guild.channels.cache)
-    for (let guildChannel of guildChannels) {
-      const channel = guildChannel[1]
-      if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
-        voyageCategories.push(channel)
+    this.guild.channels.cache.forEach(guildChannel => {
+      if (guildChannel.type === GUILD_CATEGORY && guildChannel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
+        voyageCategories.push(guildChannel)
       }
-    }
+    })
 
     // Retrieve the list of channels for this Voyage
     let voyageChannels = []
+    const guildChannels = Array.from(this.guild.channels.cache)
+    console.log('getTeamChannels - guildChannels.length: ', guildChannels.length)
     for (let guildChannel of guildChannels) {
       const channel = guildChannel[1]
       let category = null
@@ -135,6 +140,7 @@ export default class Discord {
         console.error('='.repeat(30))
         console.error(error)
         this.client.destroy() // Terminate this Discord bot
+        break
       }
       if (category !== undefined && channel.type === GUILD_TEXT) {
         voyageChannels.push({ channel: channel, category: category, threadChannel: null })
@@ -146,6 +152,8 @@ export default class Discord {
         voyageChannels.push({ channel: forumChannel, category: category, threadChannel: channel })
       }
     }
+
+    throw new Error('Troubleshooting early exit')
 
     // Sort the team channels by their names 
     let sortedChannels = []
