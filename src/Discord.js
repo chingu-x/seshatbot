@@ -115,13 +115,27 @@ export default class Discord {
   async getTeamChannels(voyageName, categoryRegex, channelRegex) {
     // Locate all the categories for this Voyage
     let voyageCategories = []
-    this.guild.channels.cache.forEach(guildChannel => {
+    let guildChannels = await this.guild.channels.fetch()
+    let categoryIds = []
+    guildChannels.forEach(guildChannel => {
       if (guildChannel.type === GUILD_CATEGORY && guildChannel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
         voyageCategories.push(guildChannel)
+        categoryIds.push(guildChannel.id)
       }
     })
 
     // Retrieve the list of channels for this Voyage
+    // Start by building a list of all text and forum channels owned by the
+    // selected categories
+    let voyageChannels = []
+    guildChannels.forEach(channel => {
+      const categoryFound = categoryIds.includes(channel.parentId)
+      if (categoryFound === true) {
+        voyageChannels.push(channel)
+      }
+    })
+
+    /* ORIGINAL CODE
     let voyageChannels = []
     const guildChannels = Array.from(this.guild.channels.cache)
     console.log('getTeamChannels - guildChannels.length: ', guildChannels.length)
@@ -152,22 +166,19 @@ export default class Discord {
         voyageChannels.push({ channel: forumChannel, category: category, threadChannel: channel })
       }
     }
-
-    throw new Error('Troubleshooting early exit')
+    */
 
     // Sort the team channels by their names 
     let sortedChannels = []
     for (let channel of voyageChannels) {
-      if (channel.channel !== null && channel.channel !== undefined) {
-        const result = channel.channel.name.match(channelRegex)
-        if (result !== null) {
-          sortedChannels.push(channel)
-        }
+      const result = channel.name.match(channelRegex)
+      if (result !== null) {
+        sortedChannels.push(channel)
       }
     }
     sortedChannels.sort((a, b) => {
       // Sort in ascending team number sequence
-      return parseInt(a.channel.name.substr(a.channel.name.length - 2)) >= parseInt(b.channel.name.substr(b.channel.name.length - 2)) 
+      return parseInt(a.name.substr(a.name.length - 2)) >= parseInt(b.name.substr(b.name.length - 2)) 
         ? 1 
         : -1
     })

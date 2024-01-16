@@ -123,11 +123,6 @@ const extractDiscordMetrics = async (environment) => {
       // Create a list of the team channels to be processed
       console.log('Preparing to get team channels...')
       const teamChannels = await discordIntf.getTeamChannels(VOYAGE, CATEGORY, CHANNEL)
-      /*
-      for (let teamChannel of teamChannels) {
-        console.log(`teamChannel - channel: ${ teamChannel.channel.id } : ${ teamChannel.channel.name } threadChannel: ${ teamChannel.threadChannel.id } : ${ teamChannel.threadChannel.name } category: ${ teamChannel.category?.id } : ${ teamChannel.category?.name }`)
-      }
-      */
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
@@ -137,6 +132,53 @@ const extractDiscordMetrics = async (environment) => {
 
       console.time('fetchAllMessages')
       console.log('Preparing to fetch messages...')
+      for (let channel of teamChannels) {
+        // Retrieve all messages in the channel. There is one row in the channel
+        // messageSummary array for each team and within each row there is
+        // an embedded array with one cell per Sprint.
+        
+        // Start by formatting the current team row with an entry for each 
+        // sprint. Incoming messages will be tallied here.
+        let teamNo = getTeamNo(channel.name)
+        const gapInTeamNos = teamNo - priorTeamNo
+
+        if (gapInTeamNos === 0) {
+          messageSummary.push([]) // Create a new row for the team
+        } else {
+          for (let i = priorTeamNo + 1; i <= teamNo; i++) {
+            messageSummary.push([]) // Create a new row for the skipped team(s) and the current team
+          }
+        }
+
+        for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
+          messageSummary[teamNo].push({ 
+            voyage: VOYAGE,
+            teamNo: teamNo,
+            sprintNo: sprintNo,
+            sprintStartDt: null,
+            sprintEndDt: null,
+            tierName: getTierName(channel.name),
+            userMessages: new Map(),
+            userSignupIDs: new Map()
+          })
+        }
+        priorTeamNo = teamNo
+
+        if (channel.type === GUILD_TEXT) {
+          await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
+            summarizeMessages, messageSummary)
+        } else if (channel.type === GUILD_FORUM) {
+          const threadChannels = Array.from(channel.threads.fetch())
+          for (threadChannel of threadChannels) {
+            await discordIntf.fetchAllMessages(threadChannel, schedule, teamNo, 
+              summarizeMessages, messageSummary)
+          }
+        } else {
+          console.log('Invalid channel type encountered - channel: ', channel)
+          throw new Error('Invalid channel type encountered - channel: ', channel)
+        }
+      }
+      /*
       for (let channelInfo of teamChannels) {
         const channel = channelInfo.channel
         if (channel.type !== 'category') {
@@ -189,6 +231,8 @@ const extractDiscordMetrics = async (environment) => {
           }
         }
       }
+    */
+
       console.timeLog('fetchAllMessages')
       console.timeEnd('fetchAllMessages')
 
@@ -196,8 +240,7 @@ const extractDiscordMetrics = async (environment) => {
       // Add an entry for users who haven't posted in their channel
       console.time('addAbsentUsers')
       console.log('Preparing to add absent users...')
-      for (let channelInfo of teamChannels) {
-        const channel = channelInfo.channel
+      for (let channel of teamChannels) {
         if (channel.type !== 'category') {
           const teamNo = getTeamNo(channel.name)
           await addAbsentUsers(schedule, teamNo, messageSummary)
