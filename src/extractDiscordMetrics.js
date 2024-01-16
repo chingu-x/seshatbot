@@ -133,6 +133,7 @@ const extractDiscordMetrics = async (environment) => {
       console.time('fetchAllMessages')
       console.log('Preparing to fetch messages...')
       for (let channel of teamChannels) {
+        console.log(`extractDiscordMetrics - channel: ${ channel.type } / ${ channel.id } / ${ channel.name } messages: ${ channel.messages } threads: ${ channel.threads }`)
         // Retrieve all messages in the channel. There is one row in the channel
         // messageSummary array for each team and within each row there is
         // an embedded array with one cell per Sprint.
@@ -165,11 +166,12 @@ const extractDiscordMetrics = async (environment) => {
         priorTeamNo = teamNo
 
         if (channel.type === GUILD_TEXT) {
-          await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
-            summarizeMessages, messageSummary)
+            await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
+              summarizeMessages, messageSummary)
         } else if (channel.type === GUILD_FORUM) {
-          const threadChannels = Array.from(channel.threads.fetch())
-          for (threadChannel of threadChannels) {
+          for (let teamChannel of messageSummary[teamNo]) {
+            //console.log('teamChannel: ', teamChannel.parentChannel.name, ' threadChannel: ', teamChannel.threadChannel.name)
+            const threadChannel = await discordIntf.getChannel(teamChannel.threadChannel)
             await discordIntf.fetchAllMessages(threadChannel, schedule, teamNo, 
               summarizeMessages, messageSummary)
           }
@@ -178,60 +180,6 @@ const extractDiscordMetrics = async (environment) => {
           throw new Error('Invalid channel type encountered - channel: ', channel)
         }
       }
-      /*
-      for (let channelInfo of teamChannels) {
-        const channel = channelInfo.channel
-        if (channel.type !== 'category') {
-          // Retrieve all messages in the channel. There is one row in the channel
-          // messageSummary array for each team and within each row there is
-          // an embedded array with one cell per Sprint.
-          
-          // Start by formatting the current team row with an entry for each 
-          // sprint. Incoming messages will be tallied here.
-          let teamNo = getTeamNo(channel.name)
-          const gapInTeamNos = teamNo - priorTeamNo
-
-          if (gapInTeamNos === 0) {
-            messageSummary.push([]) // Create a new row for the team
-          } else {
-            for (let i = priorTeamNo + 1; i <= teamNo; i++) {
-              messageSummary.push([]) // Create a new row for the skipped team(s) and the current team
-            }
-          }
-
-          for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
-            messageSummary[teamNo].push({ 
-              voyage: VOYAGE,
-              teamNo: teamNo,
-              sprintNo: sprintNo,
-              sprintStartDt: null,
-              sprintEndDt: null,
-              tierName: getTierName(channel.name),
-              parentChannel: channel,
-              threadChannel: channelInfo.threadChannel,
-              userMessages: new Map(),
-              userSignupIDs: new Map()
-            })
-          }
-          priorTeamNo = teamNo
-
-          if (channel.type === GUILD_TEXT) {
-            await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
-              summarizeMessages, messageSummary)
-          } else if (channel.type === GUILD_FORUM) {
-            for (let teamChannel of messageSummary[teamNo]) {
-              //console.log('teamChannel: ', teamChannel.parentChannel.name, ' threadChannel: ', teamChannel.threadChannel.name)
-              const threadChannel = await discordIntf.getChannel(teamChannel.threadChannel)
-              await discordIntf.fetchAllMessages(threadChannel, schedule, teamNo, 
-                summarizeMessages, messageSummary)
-            }
-          } else {
-            console.log('Invalid channel type encountered - channel: ', channel)
-            throw new Error('Invalid channel type encountered - channel: ', channel)
-          }
-        }
-      }
-    */
 
       console.timeLog('fetchAllMessages')
       console.timeEnd('fetchAllMessages')

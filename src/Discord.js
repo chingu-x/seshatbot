@@ -53,35 +53,6 @@ export default class Discord {
     }
   }
 
-  // Retrieve the parent category object for either a text or thread channel
-  async getCategoryFromChannel(channel) {
-    console.log(`getCategoryFromChannel - channel: ${ channel.type }/${ channel.id }/${ channel.name } parent: ${ channel.parentId } no. members: ${ channel.members.length } threads: ${ channel.threads }`)
-    if (channel.type === 4) {
-      const childManager = channel.children
-      console.log(`getCategoryFromChannel - childManager.cache: `, childManager.cache)
-    }
-    if (channel === null || channel === undefined) {
-      return -1
-    }
-    if (channel.type !== GUILD_TEXT && channel.type !== GUILD_PUBLIC_THREAD) {
-      return -1
-    }
-    
-    const parentChannel = await this.getChannel(channel.parentId)
-
-    // Return the category parent object for a public thread channel
-    if (channel.type === GUILD_PUBLIC_THREAD) {
-      if (parentChannel.type === GUILD_TEXT) {
-        const grandparentChannel = this.getChannel(parentChannel.parentId)
-        return grandparentChannel
-      }
-      return parentChannel
-    }
-
-    // For a text channel it's parent is assumed to be the parent category
-    return parentChannel
-  }
-
   // Retrieve the channel object for a specific channel id
   async getChannel(channel) {
     if (channel === null || channel === undefined) {
@@ -134,39 +105,6 @@ export default class Discord {
         voyageChannels.push(channel)
       }
     })
-
-    /* ORIGINAL CODE
-    let voyageChannels = []
-    const guildChannels = Array.from(this.guild.channels.cache)
-    console.log('getTeamChannels - guildChannels.length: ', guildChannels.length)
-    for (let guildChannel of guildChannels) {
-      const channel = guildChannel[1]
-      let category = null
-      try {
-        const parentCategory = await this.getCategoryFromChannel(channel)
-        if (parentCategory === -1) {
-          console.error(`Discord - getTeamChannels - category not found in channel: ${ channel.id }/${ channel.name }`)
-          continue
-        }
-        category = voyageCategories.find((category) => category.id === parentCategory.id)
-      }
-      catch(error) {
-        console.error('='.repeat(30))
-        console.error(error)
-        this.client.destroy() // Terminate this Discord bot
-        break
-      }
-      if (category !== undefined && channel.type === GUILD_TEXT) {
-        voyageChannels.push({ channel: channel, category: category, threadChannel: null })
-      } else if (category !== undefined && channel.type === GUILD_PUBLIC_THREAD) {
-        // Posts in forum channels are made in public threads. To get the 
-        // forum channel follow the `parentId` attribute to navigate back to the
-        // forum channel object.
-        const forumChannel = await this.guild.channels.cache.get(channel.parentId)
-        voyageChannels.push({ channel: forumChannel, category: category, threadChannel: channel })
-      }
-    }
-    */
 
     // Sort the team channels by their names 
     let sortedChannels = []
