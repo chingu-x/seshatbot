@@ -40,7 +40,6 @@ const getTierName = (channelName) => {
 // Extract the team number from the Discord channel name. Channel names must be
 // formatted as `<tier-name>-team-<team-no>`
 const getTeamNo = (channelName) => {
-  console.log('getTeamNo - channelName: ', channelName)
   return parseInt(channelName.split('-')[2])
 }
 
@@ -52,11 +51,9 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
     if (ADMIN_IDS.includes(discordUserName.toLowerCase())) {
       resolve()
     }
-    const sprintInfo = getSprintInfo(
-      schedule.sprintSchedule, message.createdTimestamp)
+    const sprintInfo = getSprintInfo(schedule.sprintSchedule, message.createdTimestamp)
     if (sprintInfo !== null) {
       const { sprintNo, sprintStartDt, sprintEndDt } = sprintInfo
-      console.log('summarizeMessages - teamNo: ', teamNo, ' sprintNo: ', sprintNo, ' author: ', message.author.username, ' content: ', message.content.slice(0,20) )
       try {
         messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
         messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
@@ -133,7 +130,6 @@ const extractDiscordMetrics = async (environment) => {
       console.time('fetchAllMessages')
       console.log('Preparing to fetch messages...')
       for (let channel of teamChannels) {
-        console.log(`extractDiscordMetrics - channel: ${ channel.type } / ${ channel.id } / ${ channel.name } messages: ${ channel.messages } threads: ${ channel.threads }`)
         // Retrieve all messages in the channel. There is one row in the channel
         // messageSummary array for each team and within each row there is
         // an embedded array with one cell per Sprint.
@@ -159,6 +155,7 @@ const extractDiscordMetrics = async (environment) => {
             sprintStartDt: null,
             sprintEndDt: null,
             tierName: getTierName(channel.name),
+            teamChannelName: channel.name,
             userMessages: new Map(),
             userSignupIDs: new Map()
           })
@@ -169,15 +166,15 @@ const extractDiscordMetrics = async (environment) => {
             await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
               summarizeMessages, messageSummary)
         } else if (channel.type === GUILD_FORUM) {
-          for (let teamChannel of messageSummary[teamNo]) {
-            //console.log('teamChannel: ', teamChannel.parentChannel.name, ' threadChannel: ', teamChannel.threadChannel.name)
-            const threadChannel = await discordIntf.getChannel(teamChannel.threadChannel)
-            await discordIntf.fetchAllMessages(threadChannel, schedule, teamNo, 
+          const threads = await channel.threads.fetch()
+          const forumThreads = Array.from(threads.threads).map(thread => thread[1])
+          for (let thread of forumThreads) {
+            await discordIntf.fetchAllMessages(thread, schedule, teamNo, 
               summarizeMessages, messageSummary)
           }
         } else {
-          console.log('Invalid channel type encountered - channel: ', channel)
-          throw new Error('Invalid channel type encountered - channel: ', channel)
+          console.log(`Skipping unsupported channel type - ${ channel.type } / ${ channel.id } / ${ channel.name }`)
+          continue
         }
       }
 

@@ -47,18 +47,10 @@ export default class Discord {
         }
       } while (isMoreMessages)
       return
-    } catch (err) {
-      console.log(err)
-      throw new Error(`Error retrieving messages for channel: ${channel.name} ${err}`)
+    } catch (error) {
+      console.log(error)
+      throw new Error(`Error retrieving messages for channel: ${ channel.name } ${ error }`)
     }
-  }
-
-  // Retrieve the channel object for a specific channel id
-  async getChannel(channel) {
-    if (channel === null || channel === undefined) {
-      return -1
-    }
-    return await this.guild.channels.fetch(channel.id)
   }
 
   getDiscordClient() {
