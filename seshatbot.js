@@ -25,42 +25,44 @@ const consoleLogOptions = (options) => {
 
 // Process a request to extract metrics for a specific Voyage from its
 // team channels and add/update them in Airtable
-program 
-  .command('extract <source>')
-  .description('Extract Voyage team metrics from team channels')
-  .option('-d, --debug <debug>', 'Debug switch to add runtime info to console (YES/NO)')
-  .option('-v, --voyage <name>', 'Voyage (e.g. "v31") to be selected')
-  .option('-f, --firstdate <isodate>', 'Starting date (e.g. 2021-06-27)')
-  .option('-l, --lastdate <isodate>', 'Ending date (e.g. 2021-07-03)')
-  .option('-i, --intervaldays <nodays>', 'Collection interval days (e.g. 7 for one week)')
-  .action(async (source, options, command) => {
-    environment.setOperationalVars({
-      debug: options.debug,
-      voyage: options.voyage,
-      firstDate: options.firstDate,
-      lastDate: options.lastDate,
-      intervalDays: options.intervalDays,
+(async () => {
+  program 
+    .command('extract <source>')
+    .description('Extract Voyage team metrics from team channels')
+    .option('-d, --debug <debug>', 'Debug switch to add runtime info to console (YES/NO)')
+    .option('-v, --voyage <name>', 'Voyage (e.g. "v31") to be selected')
+    .option('-f, --firstdate <isodate>', 'Starting date (e.g. 2021-06-27)')
+    .option('-l, --lastdate <isodate>', 'Ending date (e.g. 2021-07-03)')
+    .option('-i, --intervaldays <nodays>', 'Collection interval days (e.g. 7 for one week)')
+    .action(async (source, options, command) => {
+      environment.setOperationalVars({
+        debug: options.debug,
+        voyage: options.voyage,
+        firstDate: options.firstDate,
+        lastDate: options.lastDate,
+        intervalDays: options.intervalDays,
+      })
+
+      debug = environment.isDebug()
+
+      debug && consoleLogOptions(options)
+      debug && console.log('\noperationalVars: ', environment.getOperationalVars())
+      debug && environment.logEnvVars()
+      
+      try {
+        if (command._name === 'extract' && source.toLowerCase() === 'discord') {
+          await extractDiscordMetrics(environment)
+        }
+        if (command._name === 'extract' && source.toLowerCase() === 'website') {
+          await extractGAMetrics(environment)
+        }
+        process.exit(0)
+      }
+      catch (err) {
+        console.log(err)
+        process.exit(0)
+      }
     })
 
-    debug = environment.isDebug()
-
-    debug && consoleLogOptions(options)
-    debug && console.log('\noperationalVars: ', environment.getOperationalVars())
-    debug && environment.logEnvVars()
-    
-    try {
-      if (command._name === 'extract' && source.toLowerCase() === 'discord') {
-        await extractDiscordMetrics(environment)
-      }
-      if (command._name === 'extract' && source.toLowerCase() === 'website') {
-        await extractGAMetrics(environment)
-      }
-      process.exit(0)
-    }
-    catch (err) {
-      console.log(err)
-      process.exit(0)
-    }
-  })
-
-  program.parse(process.argv)
+    program.parse(process.argv)
+  })()

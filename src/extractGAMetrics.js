@@ -23,6 +23,7 @@ const getMetricsByRange = async (startDate, endDate) => {
         name: 'eventCount',
       },
     ],
+    limit: "100000"
   })
 
   let viewCount = 0
@@ -49,6 +50,7 @@ const extractGAMetrics = async (environment) => {
 
   do {
     const { viewCount, applyCount } = await getMetricsByRange(startDate.toISOString().slice(0,10), endDate.toISOString().slice(0,10))
+    console.log('extractGAMetrics - applyCount: ', applyCount)
 
     const result = await addUpdateWebsiteMetrics(startDate.toISOString(), 
       endDate.toISOString(), viewCount, applyCount

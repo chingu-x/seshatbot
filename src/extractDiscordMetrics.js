@@ -2,9 +2,9 @@ import Discord from './Discord.js'
 import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
 import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
-import initializeProgressBars from './initializeProgressBars.js'
+import { GUILD_TEXT, GUILD_FORUM, ADMIN_IDS } from './util/constants.js'
 
-const adminIDs = ['jdmedlock', 'hypno', 'Notcori', 'travel_light', 'Uhurubot', 'Chingu']
+
 let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
@@ -48,11 +48,10 @@ const getTeamNo = (channelName) => {
 const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
   return new Promise(async (resolve, reject) => {
     const discordUserName = message.author.username
-    if (adminIDs.includes(discordUserName)) {
+    if (ADMIN_IDS.includes(discordUserName.toLowerCase())) {
       resolve()
     }
-    const sprintInfo = getSprintInfo(
-      schedule.sprintSchedule, message.createdTimestamp)
+    const sprintInfo = getSprintInfo(schedule.sprintSchedule, message.createdTimestamp)
     if (sprintInfo !== null) {
       const { sprintNo, sprintStartDt, sprintEndDt } = sprintInfo
       try {
@@ -68,7 +67,7 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
             }
           }
         }
-
+        const summaryInfo = messageSummary[teamNo][sprintNo]
         resolve()
       } catch (err) {
         console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo }`)
@@ -85,8 +84,9 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
     const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
 
     for (let member of teamMembers) {
+      let discordUser
       try {
-        const discordUser = await discordIntf.getGuildUser(member.discord_id)
+        discordUser = await discordIntf.getGuildUser(member.discord_id)
         for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
           // Add an entry for any team member who posted no messages
           if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
@@ -97,98 +97,114 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
         }
       }
       catch(err) {
-        console.log(`\naddAbsentUsers - err: `, err)
+        console.log(`\naddAbsentUsers - user: ${ discordUser } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
       }
     }
 }
 
 // Extract team message metrics from the Discord channels
 const extractDiscordMetrics = async (environment) => {
+  console.log('Connecting to Discord...')
   discordIntf = new Discord(environment)
   const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
   const client = discordIntf.getDiscordClient()
   await client.login(DISCORD_TOKEN)
+  console.log('Discord client established...')
+
   const guild = await client.guilds.fetch(GUILD_ID)
   discordIntf.setGuild(guild)
+  console.log('Connection to Discord established...')
 
   try {
     client.on('ready', async () => {
       // Create a list of the team channels to be processed
-      const teamChannels = discordIntf.getTeamChannels(guild, VOYAGE, CATEGORY, CHANNEL)
-
-      // Set up the progress bars
-      const channelNames = teamChannels.map((channelInfo) => channelInfo.channel.name)
-      //let overallProgress = initializeProgressBars('All Channels', channelNames)
+      console.log('Preparing to get team channels...')
+      const teamChannels = await discordIntf.getTeamChannels(VOYAGE, CATEGORY, CHANNEL)
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
       const schedule = await getVoyageSchedule(VOYAGE)
+      console.log('schedule: ', schedule)
       let priorTeamNo = 1
 
       console.time('fetchAllMessages')
-      for (let channelInfo of teamChannels) {
-        const channel = channelInfo.channel
-        if (channel.type !== 'category') {
-          // Retrieve all messages in the channel. There is one row in the channel
-          // messageSummary array for each team and within each row there is
-          // an embedded array with one cell per Sprint.
-          
-          // Start by formatting the current team row with an entry for each 
-          // sprint. Incoming messages will be tallied here.
-          let teamNo = getTeamNo(channel.name)
-          const gapInTeamNos = teamNo - priorTeamNo
+      console.log('Preparing to fetch messages...')
+      for (let channel of teamChannels) {
+        // Retrieve all messages in the channel. There is one row in the channel
+        // messageSummary array for each team and within each row there is
+        // an embedded array with one cell per Sprint.
+        
+        // Start by formatting the current team row with an entry for each 
+        // sprint. Incoming messages will be tallied here.
+        let teamNo = getTeamNo(channel.name)
+        const gapInTeamNos = teamNo - priorTeamNo
 
-          if (gapInTeamNos === 0) {
-            messageSummary.push([]) // Create a new row for the team
-          } else {
-            for (let i = priorTeamNo + 1; i <= teamNo; i++) {
-              messageSummary.push([]) // Create a new row for the skipped team(s) and the current team
-            }
+        if (gapInTeamNos === 0) {
+          messageSummary.push([]) // Create a new row for the team
+        } else {
+          for (let i = priorTeamNo + 1; i <= teamNo; i++) {
+            messageSummary.push([]) // Create a new row for the skipped team(s) and the current team
           }
+        }
 
-          for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
-            messageSummary[teamNo].push({ 
-              voyage: VOYAGE,
-              teamNo: teamNo,
-              sprintNo: sprintNo,
-              sprintStartDt: null,
-              sprintEndDt: null,
-              tierName: getTierName(channel.name),
-              userMessages: new Map(),
-              userSignupIDs: new Map()
-            })
+        for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
+          messageSummary[teamNo].push({ 
+            voyage: VOYAGE,
+            teamNo: teamNo,
+            sprintNo: sprintNo,
+            sprintStartDt: null,
+            sprintEndDt: null,
+            tierName: getTierName(channel.name),
+            teamChannelName: channel.name,
+            userMessages: new Map(),
+            userSignupIDs: new Map()
+          })
+        }
+        priorTeamNo = teamNo
+
+        if (channel.type === GUILD_TEXT) {
+            await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
+              summarizeMessages, messageSummary)
+        } else if (channel.type === GUILD_FORUM) {
+          const threads = await channel.threads.fetch()
+          const forumThreads = Array.from(threads.threads).map(thread => thread[1])
+          for (let thread of forumThreads) {
+            await discordIntf.fetchAllMessages(thread, schedule, teamNo, 
+              summarizeMessages, messageSummary)
           }
-          priorTeamNo = teamNo
-
-          await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
-            summarizeMessages, messageSummary)
+        } else {
+          console.log(`Skipping unsupported channel type - ${ channel.type } / ${ channel.id } / ${ channel.name }`)
+          continue
         }
       }
+
       console.timeLog('fetchAllMessages')
       console.timeEnd('fetchAllMessages')
 
 
       // Add an entry for users who haven't posted in their channel
       console.time('addAbsentUsers')
-      for (let channelInfo of teamChannels) {
-        const channel = channelInfo.channel
+      console.log('Preparing to add absent users...')
+      for (let channel of teamChannels) {
         if (channel.type !== 'category') {
           const teamNo = getTeamNo(channel.name)
           await addAbsentUsers(schedule, teamNo, messageSummary)
         }
       }
+      console.log('\n')
       console.timeLog('addAbsentUsers')
       console.timeEnd('addAbsentUsers')
 
       // Add or update matching rows in Airtable
       let teamNo = 0
       console.time('Add/Update Airtable')
+      console.log('Preparing to update Airtable...')
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordName, messageCount] of sprint.userMessages) { 
             const userSignupID = sprint.userSignupIDs.get(discordName) 
-            if (!adminIDs.includes(discordName)) {
+            if (!ADMIN_IDS.includes(discordName.toLowerCase())) {
               if (sprint.sprintStartDt !== null) {
                 const result = await addUpdateTeamMetrics(sprint.voyage, 
                   sprint.teamNo, sprint.tierName, 
@@ -199,22 +215,17 @@ const extractDiscordMetrics = async (environment) => {
           }
         }
 
-        // Update the progress bar
-        //overallProgress.increment()
-        //overallProgress.update(teamNo)
         teamNo += 1
       }
       console.timeLog('Add/Update Airtable')
       console.timeEnd('Add/Update Airtable')
 
       // Terminate processing
-      //overallProgress.stop()
       discordIntf.commandResolve('done')
     })
   }
   catch(err) {
     console.log(err)
-    //overallProgress.stop()
     await client.destroy() // Terminate this Discord bot
     discordIntf.commandReject('fail')
   }
