@@ -84,8 +84,9 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
     const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
 
     for (let member of teamMembers) {
+      let discordUser
       try {
-        const discordUser = await discordIntf.getGuildUser(member.discord_id)
+        discordUser = await discordIntf.getGuildUser(member.discord_id)
         for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
           // Add an entry for any team member who posted no messages
           if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
@@ -96,7 +97,7 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
         }
       }
       catch(err) {
-        console.log(`\naddAbsentUsers - err: `, err)
+        console.log(`\naddAbsentUsers - user: ${ discordUser } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
       }
     }
 }
@@ -191,6 +192,7 @@ const extractDiscordMetrics = async (environment) => {
           await addAbsentUsers(schedule, teamNo, messageSummary)
         }
       }
+      console.log('\n')
       console.timeLog('addAbsentUsers')
       console.timeEnd('addAbsentUsers')
 
