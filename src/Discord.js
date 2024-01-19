@@ -1,25 +1,19 @@
 import { Client, GatewayIntentBits } from 'discord.js'
-
-const GUILD_CATEGORY = 4
-const GUILD_TEXT = 0
+import { GUILD_CATEGORY, GUILD_TEXT, GUILD_PUBLIC_THREAD} from './util/constants.js'
 export default class Discord {
   
   constructor(environment) {
     this.environment = environment
     this.isDebug = this.environment.isDebug()
 
-    /*
-    const myIntents = new IntentsBitField()
-    myIntents.add(IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildPresences, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildMessages)
-    this.client = new Client({ intents: myIntents })
-    */
     this.client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
-      ],
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,      ],
     })
-    this.login = this.client.login(process.env.DISCORD_TOKEN)
+    this.login = null
     this.guild = null
 
     // Since extraction occurs within the `client.on` block these promises are
@@ -53,9 +47,9 @@ export default class Discord {
         }
       } while (isMoreMessages)
       return
-    } catch (err) {
-      console.log(err)
-      throw new Error(`Error retrieving messages for channel: ${channel.name} ${err}`)
+    } catch (error) {
+      console.log(error)
+      throw new Error(`Error retrieving messages for channel: ${ channel.name } ${ error }`)
     }
   }
 
@@ -70,10 +64,10 @@ export default class Discord {
         const user = this.guild.members.fetch(discordId)
         resolve(user)
       }
-      catch(err) {
-        console.log('='.repeat(30))
-        console.log(`Error retrieving user ${ discordId } from Discord:`)
-        console.log(err)
+      catch(error) {
+        console.error('='.repeat(30))
+        console.error(`Error retrieving user ${ discordId } from Discord:`)
+        console.error(err)
         this.client.destroy() // Terminate this Discord bot
         reject(null)
       }
@@ -81,36 +75,40 @@ export default class Discord {
   }
 
   // Get the team channels and their parent categories for the specified Voyage. 
-  getTeamChannels(guild, voyageName, categoryRegex, channelRegex) {
+  async getTeamChannels(voyageName, categoryRegex, channelRegex) {
     // Locate all the categories for this Voyage
     let voyageCategories = []
-    guild.channels.cache.forEach((channel) => {
-      if (channel.type === GUILD_CATEGORY && channel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
-        voyageCategories.push(channel)
+    let guildChannels = await this.guild.channels.fetch()
+    let categoryIds = []
+    guildChannels.forEach(guildChannel => {
+      if (guildChannel.type === GUILD_CATEGORY && guildChannel.name.toUpperCase().substring(0,3) === voyageName.toUpperCase()) {
+        voyageCategories.push(guildChannel)
+        categoryIds.push(guildChannel.id)
       }
     })
 
     // Retrieve the list of channels for this Voyage
+    // Start by building a list of all text and forum channels owned by the
+    // selected categories
     let voyageChannels = []
-    guild.channels.cache.forEach((channel) => {
-      const category = voyageCategories.find((category) => channel.parentId === category.id)
-      if (category !== undefined && channel.type === GUILD_TEXT) {
-        voyageChannels.push({ channel: channel, category: category })
+    guildChannels.forEach(channel => {
+      const categoryFound = categoryIds.includes(channel.parentId)
+      if (categoryFound === true) {
+        voyageChannels.push(channel)
       }
     })
 
     // Sort the team channels by their names 
-    let sortedChannels = voyageChannels
-    .reduce((channels, channel) => {
-      const result = channel.channel.name.match(channelRegex)
+    let sortedChannels = []
+    for (let channel of voyageChannels) {
+      const result = channel.name.match(channelRegex)
       if (result !== null) {
-        channels.push(channel)
+        sortedChannels.push(channel)
       }
-      return channels
-    }, [])
-    .sort((a, b) => {
+    }
+    sortedChannels.sort((a, b) => {
       // Sort in ascending team number sequence
-      return parseInt(a.channel.name.substr(a.channel.name.length - 2)) >= parseInt(b.channel.name.substr(b.channel.name.length - 2)) 
+      return parseInt(a.name.substr(a.name.length - 2)) >= parseInt(b.name.substr(b.name.length - 2)) 
         ? 1 
         : -1
     })

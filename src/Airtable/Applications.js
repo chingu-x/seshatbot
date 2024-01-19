@@ -9,8 +9,6 @@ const getVoyagerDiscordId = async (email) => {
 
     const filter =  
         `{Email} = "${ email }"`
-    //console.log(`getApplicationByEmail - Processing email: ${ email }`)
-
 
     base('Applications').select({ 
       filterByFormula: filter,
@@ -39,6 +37,7 @@ const getVoyagerDiscordId = async (email) => {
 // date range
 const getApplicationCountByDate = async (metricStartDate, metricEndDate) => {
   return new Promise(async (resolve, reject) => {
+    let applicationCount = 0
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
 
     const filter = "AND(" + 
@@ -50,19 +49,20 @@ const getApplicationCountByDate = async (metricStartDate, metricEndDate) => {
       filterByFormula: filter,
       view: 'Applications' 
     })
-    .firstPage((err, records) => {
+    .eachPage(async function page(records, fetchNextPage) {
+      applicationCount += records.length
+      
+      // To fetch the next page of records, call 'fetchNextPage'.
+      // If there are more records, 'page' will get called again.
+      // If there are no more records, 'done' will get called.
+      fetchNextPage()
+    }, function done(err) {
       if (err) { 
-        console.error('filter: ', filter)
+        console.error('getVoyageTeam - filter: ', filter)
         console.error(err) 
         reject(err) 
       }
-
-      // Return the number of Applications submitted in this date range
-      if (records !== null && records !== undefined) {
-        console.log(`records.length: `, records.length)
-        resolve(records.length)
-      }
-      resolve(0)
+      resolve(applicationCount)
     })
   })
 }

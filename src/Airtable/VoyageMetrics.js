@@ -57,6 +57,7 @@ const addVoyageMetric = async (voyageName, teamNo, tierName,
           "Team Channel Msg Count": messageCount,
           "Discord Name": discordName,
           "Voyage Signups Link": signupRecID,
+          "Voyage Signups": signupRecID,
       }
     }], (err, records) => {
       if (err) {
@@ -95,7 +96,8 @@ const updateVoyageMetric = async (recordID, voyageName, teamNo, tierName,
           "Team No": teamNo,
           "Team Channel Msg Count": messageCount,
           "Discord Name": discordName,
-          "Voyage Signups Link": signupRecID
+          "Voyage Signups Link": signupRecID,
+          "Voyage Signups": signupRecID,
         }
       }
     ], (err, records) => {
