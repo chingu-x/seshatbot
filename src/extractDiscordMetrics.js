@@ -179,7 +179,6 @@ const extractDiscordMetrics = async (environment) => {
         }
       }
 
-      console.timeLog('fetchAllMessages')
       console.timeEnd('fetchAllMessages')
 
 
@@ -193,7 +192,6 @@ const extractDiscordMetrics = async (environment) => {
         }
       }
       console.log('\n')
-      console.timeLog('addAbsentUsers')
       console.timeEnd('addAbsentUsers')
 
       // Add or update matching rows in Airtable
@@ -217,7 +215,6 @@ const extractDiscordMetrics = async (environment) => {
 
         teamNo += 1
       }
-      console.timeLog('Add/Update Airtable')
       console.timeEnd('Add/Update Airtable')
 
       // Terminate processing
