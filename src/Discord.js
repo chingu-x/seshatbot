@@ -28,37 +28,54 @@ export default class Discord {
     })
   }
 
+  // Scan messages in a channel to find the most recent one posted for a user.
+  // Since threads are a type of channel this routine accepts either channels
+  // or threads.
+  async scanUserMessages(userName, channel) {
+    let isMoreMessages = true
+    let fetchOptions = { limit: 100 }
+    try {
+      do {
+        const messages = await channel.messages.fetch(fetchOptions)
+        if (messages.size > 0) {
+          let mostRecentMsgDate = null
+          for (let [messageID, message] of messages) {
+            // Compare the message date to the last one retrieved
+            // and keep only the most recent one
+            console.log(`getLastMessageDateForUser - message id: ${ messageID }`, message)
+            if (message.author.username === userName) {
+              if (message.createdAt > mostRecentMsgDate) {
+                mostRecentMsgDate = message.createdAt
+              }
+            }
+          }
+          fetchOptions = { limit: 100, before: messages.last().id }
+        } else {
+          isMoreMessages = false // Stop fetching messages for this channel
+        }
+      } while (isMoreMessages)
+      return mostRecentMsgDate
+    } catch (error) {
+      console.log(`scanUserMessages -`, error)
+      throw new Error(`scanUserMessages - Error retrieving messages for channel: ${ channel.name } ${ error }`)
+    }
+  }
+
   // Retrieve the date of the last message posted by a Discord user in a
   // specific channel. 
-  async getLastMessageDateForUser(discordId, channel) {
-    let mostRecentMessage = null
+  async getLastMessageDateForUser(userName, channel) {
+    let mostRecentMsgDate
     if (channel.type === GUILD_TEXT) {
-      let isMoreMessages = true
-      let fetchOptions = { limit: 100 }
-      try {
-        do {
-          const messages = await channel.messages.fetch(fetchOptions)
-          if (messages.size > 0) {
-            for (let [messageID, message] of messages) {
-              //TODO: compare the message date to the last one retrieved
-              // and keep only the most recent one
-            }
-            fetchOptions = { limit: 100, before: messages.last().id }
-          } else {
-            isMoreMessages = false // Stop fetching messages for this channel
-          }
-        } while (isMoreMessages)
-        return
-      } catch (error) {
-        console.log(error)
-        throw new Error(`getLastMessageDateForUser - Error retrieving messages for channel: ${ channel.name } ${ error }`)
-      }
+      mostRecentMsgDate = await this.scanUserMessages(userName, channel)
+      return mostRecentMsgDate
     } else if (channel.type === GUILD_FORUM) {
       const threads = await channel.threads.fetch()
       const forumThreads = Array.from(threads.threads).map(thread => thread[1])
       for (let thread of forumThreads) {
-        //TODO: scan threads for most recent message from Discord user
+        mostRecentMsgDate = null
+        mostRecentMsgDate = await this.scanUserMessages(userName, thread)
       }
+      return mostRecentMsgDate
     }
     return -1 // Discord user not found or unsupported channel type
   }
