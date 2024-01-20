@@ -1,5 +1,5 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
-import { addDays } from './Airtable/utils.js'
+import { addDays } from './util/dates.js'
 import { addUpdateWebsiteMetrics } from './Airtable/WebsiteMetrics.js'
 
 // Get Metrics from Google Analytics for a specific range of dates

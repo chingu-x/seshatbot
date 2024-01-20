@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits } from 'discord.js'
-import { GUILD_CATEGORY, GUILD_TEXT, GUILD_PUBLIC_THREAD} from './util/constants.js'
+import { GUILD_CATEGORY, GUILD_TEXT, GUILD_PUBLIC_THREAD, GUILD_FORUM} from './util/constants.js'
 export default class Discord {
   
   constructor(environment) {
@@ -26,6 +26,41 @@ export default class Discord {
       this.commandResolve = resolve
       this.commandReject = reject
     })
+  }
+
+  // Retrieve the date of the last message posted by a Discord user in a
+  // specific channel. 
+  async getLastMessageDateForUser(discordId, channel) {
+    let mostRecentMessage = null
+    if (channel.type === GUILD_TEXT) {
+      let isMoreMessages = true
+      let fetchOptions = { limit: 100 }
+      try {
+        do {
+          const messages = await channel.messages.fetch(fetchOptions)
+          if (messages.size > 0) {
+            for (let [messageID, message] of messages) {
+              //TODO: compare the message date to the last one retrieved
+              // and keep only the most recent one
+            }
+            fetchOptions = { limit: 100, before: messages.last().id }
+          } else {
+            isMoreMessages = false // Stop fetching messages for this channel
+          }
+        } while (isMoreMessages)
+        return
+      } catch (error) {
+        console.log(error)
+        throw new Error(`getLastMessageDateForUser - Error retrieving messages for channel: ${ channel.name } ${ error }`)
+      }
+    } else if (channel.type === GUILD_FORUM) {
+      const threads = await channel.threads.fetch()
+      const forumThreads = Array.from(threads.threads).map(thread => thread[1])
+      for (let thread of forumThreads) {
+        //TODO: scan threads for most recent message from Discord user
+      }
+    }
+    return -1 // Discord user not found or unsupported channel type
   }
 
   // Fetch all messages from the selected Discord team channels.
