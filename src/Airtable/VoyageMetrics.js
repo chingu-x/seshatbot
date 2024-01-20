@@ -1,5 +1,5 @@
 import Airtable from 'airtable'
-import { noDaysBetween } from './utils.js'
+import { noDaysBetween } from '../util/dates.js'
 
 // Retrieve Voyage Metrics for the matching voyage name, team number, 
 // sprint number, & Discord user name
