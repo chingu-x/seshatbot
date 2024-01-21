@@ -128,9 +128,9 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
       } 
 
       for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
-        // Add an entry for any team member who posted no messages
+        // Add an entry for any team member who hasn't posted messages in this sprint
         if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
-          messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, 0)
+          messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, null)
         }
         // Add the email address to all team members
         messageSummary[teamNo][sprintIndex].userSignupIDs.set(discordUser.user.username, member.signup_id)
@@ -143,8 +143,9 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
 }
 
 // Update the Voyagers status in the Voyage Signups table
-const updateVoyageStatus = async () => {
-  // TODO: Add update logic here
+const updateVoyageStatus = async (discordUserName, teamNo, noDays, status, statusComment) => {
+  // TODO: Add logic here
+  console.log(`updateVoyageStatus - user: ${ discordUserName } team: ${ teamNo } noDays: ${ noDays } status: ${ status } comment: ${ statusComment }`)
 }
 
 // Extract team message metrics from the Discord channels
@@ -240,7 +241,7 @@ const extractDiscordMetrics = async (environment) => {
 
       // Add or update matching rows in Airtable
       let teamNo = 0
-      console.time('...Add/Update Airtable')
+      console.time('...Add/Update Voyage Metrics')
       for (let team of messageSummary) {
         for (let sprint of team) {
           for (let [discordName, messageCount] of sprint.userMessages) { 
@@ -258,12 +259,11 @@ const extractDiscordMetrics = async (environment) => {
 
         teamNo += 1
       }
-      console.timeEnd('...Add/Update Airtable')
+      console.timeEnd('...Add/Update Voyage Metrics')
 
       // Update the Voyage Signups status for Voyagers who are not
       // actively communicating in their team channels
       console.time('...Updating Voyage Status...')
-      console.log('...extractDiscordMetrics - mostRecentUserMsgs: ', mostRecentUserMsgs)
 
       // If the current date is three or more days from most recent 
       // message date set the status to `Inactive` and set the status comment
@@ -272,28 +272,23 @@ const extractDiscordMetrics = async (environment) => {
       const formattedCurrentDate = currentDate.toISOString().substring(0,10)
 
       for (let entry of mostRecentUserMsgs) { 
-        console.log('entry: ', entry)
-      }
-      throw new Error('extractDiscordMetrics - Troubleshooting early exit')
-
-      for (let entry of mostRecentUserMsgs) { 
         let status = ''
         let statusComment =''
-        const [discordUserName, mostRecentMsgDate] = entry
+        const [key, mostRecentMsgDate] = entry
+        const msgDate = new Date(mostRecentMsgDate)
+        const noDays = noDaysBetween(msgDate, currentDate)
+
         if (mostRecentMsgDate === null) {
           status = 'Inactive'
           statusComment = `${ formattedCurrentDate } - No team channel posts since start of Voyage`
         } else {
-          const noDays = noDaysBetween(startDt, currentDate)
           if (noDays >= 3) {
             status = 'Inactive'
             statusComment = `${ formattedCurrentDate } - No team channel posts since ${ mostRecentMsgDate.toISOString().substring(0,10) }`
           }
         }
 
-        if (status !== '') {
-           await updateVoyageSignup(discordUserName, teamNo, status, statusComment)
-        }
+        await updateVoyageStatus(key.userName, key.teamNo, noDays, status, statusComment)
       }
 
       console.timeEnd('...Updating Voyage Status...')
