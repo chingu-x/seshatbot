@@ -46,22 +46,6 @@ const addVoyageMetric = async (voyageName, teamNo, tierName,
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
     const signupRecID = signupID ? [`${ signupID }`] : ''
 
-    //TODO: if the `messageCount` is zero and the current date is 
-    // three or more days from the start of the sprint set the status 
-    // to `Inactive` and set the status comment to 
-    // `yyyy-mm-dd - No team channel posts since start of sprint`
-    let status = ''
-    let statusComment = ''
-    let noDays = 0
-    if (messageCount === 0) {
-      const currentDate = new Date()
-      noDays = noDaysBetween(startDt, currentDate)
-      if (noDays >= 3) {
-        status = 'Inactive'
-        statusComment = `${ currentDate.toISOString().substring(0,10) } - No team channel posts since start of sprint`
-      }
-    }
-
     base('Voyage Metrics').create([
       {
         "fields": {
@@ -100,11 +84,6 @@ const updateVoyageMetric = async (recordID, voyageName, teamNo, tierName,
     const endDt = new Date(sprintEndDt)
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
     const signupRecID = signupID ? [`${ signupID }`] : ''
-
-    //TODO: if the `messageCount` is zero and the current date is 
-    // three or more days the Voyagers last post set the status 
-    // to `Inactive` and set the status comment to 
-    // `yyyy-mm-dd - No team channel posts since yyyy-mm-dd`
 
     base('Voyage Metrics').update([
       {

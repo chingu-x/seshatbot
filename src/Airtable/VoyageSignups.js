@@ -35,7 +35,7 @@ const getVoyageSignup = async (voyageName, teamNo, discordName) => {
 }
 
 // Update an exising Voyage Signup with current status and a status comment
-const updateVoyageSignup = async (recordID, status, statusComment) => {
+const updateVoyageSignup = async (discordName, teamNo, status, statusComment) => {
 
   return new Promise(async (resolve, reject) => {
     const startDt = new Date(sprintStartDt)
