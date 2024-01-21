@@ -31,7 +31,7 @@ export default class Discord {
   // Fetch all messages from the selected Discord team channels.
   // Note that the `callback` routine is invoked for each message to
   // accumulate any desired metrics.
-  async fetchAllMessages(channel, schedule, teamNo, callback, messageSummary, userMostRecentMsgDates) {
+  async fetchAllMessages(channel, schedule, teamNo, callback, messageSummary, mostRecentUserMsgs) {
     let isMoreMessages = true
     let fetchOptions = { limit: 100 }
     try {
@@ -39,7 +39,7 @@ export default class Discord {
         const messages = await channel.messages.fetch(fetchOptions)
         if (messages.size > 0) {
           for (let [messageID, message] of messages) {
-            await callback(schedule, teamNo, message, messageSummary, userMostRecentMsgDates) // Invoke the callback function to process messages
+            await callback(schedule, teamNo, message, messageSummary, mostRecentUserMsgs) // Invoke the callback function to process messages
           }
           fetchOptions = { limit: 100, before: messages.last().id }
         } else {
