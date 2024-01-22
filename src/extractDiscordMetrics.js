@@ -80,12 +80,12 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary, most
         // creation date of this message if it's after the date in the map. 
         const key = findMapKey(discordUserName, teamNo, mostRecentUserMsgs)
         if (key === undefined) {
-          mostRecentUserMsgs.set({ userName: discordUserName, teamNo: teamNo }, message.createdAt)
+          mostRecentUserMsgs.set({ userName: discordUserName, teamNo: teamNo, userId: message.author.id }, message.createdAt)
         } else {
           if (key.userName === discordUserName && key.teamNo === teamNo) {
             const mostRecentUserMsgDate = mostRecentUserMsgs.get(key)
             if (message.createdAt > mostRecentUserMsgDate) {
-              mostRecentUserMsgs.set({ userName: discordUserName, teamNo: teamNo }, message.createdAt)
+              mostRecentUserMsgs.set({ userName: discordUserName, teamNo: teamNo, userId: message.author.id }, message.createdAt)
             } 
           }
         }
@@ -119,7 +119,8 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary, most
 const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMsgs) => {
   const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
 
-  for (let member of teamMembers) {
+  let member
+  for (member of teamMembers) {
     let discordUser
     try {
       discordUser = await discordIntf.getGuildUser(member.discord_id)
@@ -127,7 +128,7 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
       // Add a entry to the most recent user messages map for this user
       const key = findMapKey(discordUser.user.username, teamNo, mostRecentUserMsgs)
       if (key === undefined) {
-        mostRecentUserMsgs.set({userName: discordUser.user.username, teamNo: teamNo}, 0)
+        mostRecentUserMsgs.set({userName: discordUser.user.username, teamNo: teamNo, userId: discordUser.user.id}, 0)
       } 
 
       for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
@@ -140,18 +141,21 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
       }
     }
     catch(error) {
-      console.log(`\naddAbsentUsers - user: ${ discordUser } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
+      console.log(`\naddAbsentUsers - user: ${ discordUser.id }/${ discordUser.name } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
     }
   }
 }
 
 // Update the Voyagers status in the Voyage Signups table
-const updateVoyageStatus = async (voyageName, discordUserName, teamNo, noDays, status, statusComment) => {
-  console.log(`updateVoyageStatus - user: ${ discordUserName } team: ${ teamNo } noDays: ${ noDays } status: ${ status } comment: ${ statusComment }`)
+const updateVoyageStatus = async (voyageName, discordUserId, teamNo, noDays, status, statusComment) => {
+  console.log(`updateVoyageStatus - user: ${ discordUserId } team: ${ teamNo } noDays: ${ noDays } status: ${ status } comment: ${ statusComment }`)
   // TODO: Add logic here
   // Get the Voyage Signup matching the users Voyage name, Discord name, and 
   // team number. Return if the Voyage status is not `Active` or `Inactive`
-  const voyager = await getVoyager(voyageName.toUpperCase(), teamNo, discordUserName)
+  const voyager = await getVoyager(voyageName.toUpperCase(), teamNo, discordUserId)
+  .catch(error => {
+    console.log(error)
+  })
   console.log('updateVoyageStatus - voyager: ', voyager)
 
   // If the users Voyage status is `Inactive` change it back to `Active` if
@@ -305,7 +309,7 @@ const extractDiscordMetrics = async (environment) => {
           }
         }
 
-        await updateVoyageStatus(VOYAGE, key.userName, key.teamNo, noDays, status, statusComment)
+        await updateVoyageStatus(VOYAGE, key.userId, key.teamNo, noDays, status, statusComment)
       }
 
       console.timeEnd('...Updating Voyage Status...')
