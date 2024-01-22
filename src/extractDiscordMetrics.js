@@ -1,8 +1,11 @@
 import Discord from './Discord.js'
 import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
-import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
-import { GUILD_TEXT, GUILD_FORUM, ADMIN_IDS } from './util/constants.js'
+import { getVoyageTeam, getVoyager } from './Airtable/VoyageTeamsort.js'
+import { 
+  GUILD_TEXT, GUILD_FORUM, 
+  ADMIN_IDS, 
+  VOYAGER_INACTIVE_DAYS_THRESHOLD } from './util/constants.js'
 import { noDaysBetween } from './util/dates.js'
 
 let discordIntf
@@ -143,9 +146,23 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
 }
 
 // Update the Voyagers status in the Voyage Signups table
-const updateVoyageStatus = async (discordUserName, teamNo, noDays, status, statusComment) => {
-  // TODO: Add logic here
+const updateVoyageStatus = async (voyageName, discordUserName, teamNo, noDays, status, statusComment) => {
   console.log(`updateVoyageStatus - user: ${ discordUserName } team: ${ teamNo } noDays: ${ noDays } status: ${ status } comment: ${ statusComment }`)
+  // TODO: Add logic here
+  // Get the Voyage Signup matching the users Voyage name, Discord name, and 
+  // team number. Return if the Voyage status is not `Active` or `Inactive`
+  const voyager = await getVoyager(voyageName.toUpperCase(), teamNo, discordUserName)
+  console.log('updateVoyageStatus - voyager: ', voyager)
+
+  // If the users Voyage status is `Inactive` change it back to `Active` if
+  // the number of days since their last post is < VOYAGER_INACTIVE_DAYS_THRESHOLD
+  // and return
+  //TODO: Add logic here
+
+  // If the users Voyage status is `Active` change it to `Inactive` and
+  // add the status comment if the number of days since their last post 
+  // is >= VOYAGER_INACTIVE_DAYS_THRESHOLD
+  //TODO: Add logic here
 }
 
 // Extract team message metrics from the Discord channels
@@ -282,13 +299,13 @@ const extractDiscordMetrics = async (environment) => {
           status = 'Inactive'
           statusComment = `${ formattedCurrentDate } - No team channel posts since start of Voyage`
         } else {
-          if (noDays >= 3) {
+          if (noDays >= VOYAGER_INACTIVE_DAYS_THRESHOLD) {
             status = 'Inactive'
             statusComment = `${ formattedCurrentDate } - No team channel posts since ${ mostRecentMsgDate.toISOString().substring(0,10) }`
           }
         }
 
-        await updateVoyageStatus(key.userName, key.teamNo, noDays, status, statusComment)
+        await updateVoyageStatus(VOYAGE, key.userName, key.teamNo, noDays, status, statusComment)
       }
 
       console.timeEnd('...Updating Voyage Status...')
