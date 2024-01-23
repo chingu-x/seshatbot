@@ -146,7 +146,7 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
       }
     }
     catch(error) {
-      console.log('\naddAbsentUsers error: ', error)
+      console.log('\naddAbsentUsers error: ', error !== null ? error : 'unknown error')
       console.log(`\naddAbsentUsers - user: ${ discordUser.id }/${ discordUser.name } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
     }
   }
@@ -154,16 +154,19 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
 
 // Update the Voyagers status in the Voyage Signups table
 const updateVoyageStatus = async (voyageName, discordUserId, teamNo, noDays, status, statusComment) => {
-  console.log(`updateVoyageStatus - user: ${ discordUserId } team: ${ teamNo } noDays: ${ noDays } status: ${ status } comment: ${ statusComment }`)
+  let newStatus = ''
+  let newStatusComment = ''
+  const currentDate = new Date()
+  const currentISODate = currentDate.toISOString().substring(0,10)
+
   // TODO: Add logic here
   // Get the Voyage Signup matching the users Voyage name, Discord name, and 
   // team number. Return if the Voyage status is not `Active` or `Inactive`
   const voyager = await getVoyager(voyageName.toUpperCase(), teamNo, discordUserId)
-  .catch(error => {
-    console.log(`Voyager not found id:${ discordUserId }`, error)
-  })
-  console.log('updatVoyagerStatus - voyager: ', voyager)
-  console.log(`updateVoyagerStatus - user:${voyager.discord_name} tier: ${ voyager.tier } teamNo:${ voyager.team_no } status:${ voyager.status } comment:${ voyager.status_comment }`)
+  console.log('voyager: ', voyager)
+  if (voyager === -1) {
+    return
+  }
   if (voyager.status !== 'Active' && voyager.status !== 'Inactive') {
     return
   }
@@ -171,12 +174,26 @@ const updateVoyageStatus = async (voyageName, discordUserId, teamNo, noDays, sta
   // If the users Voyage status is `Inactive` change it back to `Active` if
   // the number of days since their last post is < VOYAGER_INACTIVE_DAYS_THRESHOLD
   // and return
-  //TODO: Add logic here
+  if (voyager.status === 'Inactive' && noDays < VOYAGER_INACTIVE_DAYS_THRESHOLD) {
+    newStatus = 'Active'
+    newStatusComment = `${ currentISODate } - Member returned to Active status\n`
+      .concat(voyager.status_comment)
+  }
 
   // If the users Voyage status is `Active` change it to `Inactive` and
   // add the status comment if the number of days since their last post 
   // is >= VOYAGER_INACTIVE_DAYS_THRESHOLD
-  //TODO: Add logic here
+  if (voyager.status === 'Active' && noDays < VOYAGER_INACTIVE_DAYS_THRESHOLD) {
+    newStatus = 'Inactive'
+    newStatusComment = `${ currentISODate } - Member inactive for ${ noDays } days. Moved to inactive status\n`
+      .concat(voyager.status_comment)
+  }
+
+  // If the Voyagers status has changed update it in their Voyage Signups row
+  if (newStatus !== '') {
+    console.log(`updateVoyageStatus - Updating user: ${ discordUserId } team: ${ teamNo } noDays: ${ noDays } status: ${ newStatus } comment: ${ newStatusComment }`)
+  }
+  //TODO: Add logic to update Voyage Signups row for this Voyager with new status
 }
 
 // Extract team message metrics from the Discord channels
