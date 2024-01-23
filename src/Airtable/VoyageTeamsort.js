@@ -89,7 +89,7 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
     filterByFormula: filter,
     view: 'Teamsort - '.concat(voyage) 
   })
-  .firstPage(async function (error, records) {
+  .firstPage(async (error, records) => {
     if (error) { 
       console.error(error)
       console.log('VoyageTeamsort error')
@@ -122,9 +122,9 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
         return(-1)
       }
     }
-    console.log(`getVoyager - Voyager not found - Voyage:${ voyage } team:${ teamNo } user:${ discordUserId }`)
-    return(-1)
   })
+  console.log(`getVoyager - Voyager not found - Voyage:${ voyage } team:${ teamNo } user:${ discordUserId }`)
+  return(-1)
 }
 
 // Retrieve Voyage Metrics for the matching voyage name, team number, 
