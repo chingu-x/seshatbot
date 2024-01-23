@@ -120,15 +120,20 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
   const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
 
   let member
+  let discordUser
+
   for (member of teamMembers) {
-    let discordUser
     try {
       discordUser = await discordIntf.getGuildUser(member.discord_id)
       
       // Add a entry to the most recent user messages map for this user
       const key = findMapKey(discordUser.user.username, teamNo, mostRecentUserMsgs)
       if (key === undefined) {
-        mostRecentUserMsgs.set({userName: discordUser.user.username, teamNo: teamNo, userId: discordUser.user.id}, 0)
+        mostRecentUserMsgs.set({ 
+            userName: discordUser.user.username, 
+            teamNo: teamNo, 
+            userId: discordUser.user.id
+          }, 0)
       } 
 
       for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
@@ -141,6 +146,7 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
       }
     }
     catch(error) {
+      console.log('\naddAbsentUsers error: ', error)
       console.log(`\naddAbsentUsers - user: ${ discordUser.id }/${ discordUser.name } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
     }
   }
@@ -154,9 +160,13 @@ const updateVoyageStatus = async (voyageName, discordUserId, teamNo, noDays, sta
   // team number. Return if the Voyage status is not `Active` or `Inactive`
   const voyager = await getVoyager(voyageName.toUpperCase(), teamNo, discordUserId)
   .catch(error => {
-    console.log(error)
+    console.log(`Voyager not found id:${ discordUserId }`, error)
   })
-  console.log('updateVoyageStatus - voyager: ', voyager)
+  console.log('updatVoyagerStatus - voyager: ', voyager)
+  console.log(`updateVoyagerStatus - user:${voyager.discord_name} tier: ${ voyager.tier } teamNo:${ voyager.team_no } status:${ voyager.status } comment:${ voyager.status_comment }`)
+  if (voyager.status !== 'Active' && voyager.status !== 'Inactive') {
+    return
+  }
 
   // If the users Voyage status is `Inactive` change it back to `Active` if
   // the number of days since their last post is < VOYAGER_INACTIVE_DAYS_THRESHOLD

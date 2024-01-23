@@ -58,17 +58,22 @@ export default class Discord {
   }
     
   // Retrieve the users Discord name using their unique id
-  getGuildUser(discordId) {
+  async getGuildUser(discordId) {
     return new Promise(async (resolve, reject) => {
       try {
-        const user = this.guild.members.fetch(discordId)
-        resolve(user)
+        const users = await this.guild.members.fetch()
+        for (let user of users) {
+          const [id, userInfo] = user
+          if (id === discordId) {
+            resolve(userInfo)
+          }
+        }
+        reject(null)
       }
       catch(error) {
         console.error('='.repeat(30))
         console.error(`Error retrieving user ${ discordId } from Discord:`)
-        console.error(err)
-        this.client.destroy() // Terminate this Discord bot
+        console.error(error)
         reject(null)
       }
     })

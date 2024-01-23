@@ -113,11 +113,13 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
             discord_name: `${ record.get('Discord Name') }`,
             role: `${ record.get('Role') }`,
             status: `${ record.get('Status')}`,
-            statusComment: `${ record.get('Status Comment')}`
+            status_comment: `${ record.get('Status Comment')}`
           })
         }
-        catch(err) {
-          console.log(`getVoyageTeam - Invalid voyagerDiscordId ${ discordDiscordId } for ${ voyagerEmail }`)
+        catch(error) {
+          console.log(`getVoyageTeam - Error retrieving voyagerDiscordId ${ discordDiscordId }`)
+          console.log(error)
+          reject(`getVoyageTeam  - Error retrieving voyagerDiscordId ${ discordDiscordId }`)
         }
       }
       reject(`Voyager not found - Voyage:${ voyage } team:${ teamNo } user:${ discordUserId }`)
