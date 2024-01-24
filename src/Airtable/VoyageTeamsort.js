@@ -71,92 +71,76 @@ const getVoyageTeam = async (voyage, teamNo) => {
 
 // Retrieve a voyager for a specific Voyage and team
 const getVoyager = async (voyage, teamNo, discordUserId) => {
-  const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
-
-  const filter = 'AND(' +
-    '{Voyage} = "' + voyage + '", ' +
-    '{Team No.} = "' + teamNo + '", ' +
-    '{Discord ID} = "' + discordUserId + '" ' +
-  ')'
-
-  console.log(`\ngetVoyager - filter: ${ filter }`)
-  
-  base('Voyage Signups').select({ 
-    fields:[
-      'Email', 'Voyage', 'Team Name', 'Tier', 'Team No.', 'Discord Name', 
-      'Discord ID', 'Role', 'Status', 'Status Comment'
-    ],
-    filterByFormula: filter,
-    view: 'Teamsort - '.concat(voyage) 
-  })
-  .firstPage(async (error, records) => {
-    if (error) { 
-      console.error(error)
-      console.log('VoyageTeamsort error')
-      return (-1)
-    }
-
-    for (let record of records) {
-      console.log(`getVoyager - Voyage:${ voyage } team:${ teamNo } record.get('Discord ID'):${ record.get('Discord ID') } discordUserId:${ discordUserId }`)
-      try {
-        const tierName = record.get('Tier')
-          .slice(0,6)
-          .toLowerCase()
-          .split(' ')
-          .join('')
-        return({ 
-          signup_id: `${ record.id }`,
-          email: `${ record.get('Email') }`,
-          voyage: `${ record.get('Voyage') }`,
-          team_name: `${ record.get('Team Name') }`,
-          tier: `${ tierName }`,
-          team_no: `${ record.get('Team No.') }`,
-          discord_name: `${ record.get('Discord Name') }`,
-          role: `${ record.get('Role') }`,
-          status: `${ record.get('Status')}`,
-          status_comment: `${ record.get('Status Comment')}`
-        })
-      }
-      catch(error) {
-        console.log(`getVoyager - Error retrieving voyagerDiscordId ${ discordDiscordId }`)
-        return(-1)
-      }
-    }
-  })
-  console.log(`getVoyager - Voyager not found - Voyage:${ voyage } team:${ teamNo } user:${ discordUserId }`)
-  return(-1)
-}
-
-// Retrieve Voyage Metrics for the matching voyage name, team number, 
-// sprint number, & Discord user name
-const getVoyageStatus = async (voyageName, teamNo, discordName) => {
   return new Promise(async (resolve, reject) => {
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
-    const filter = "AND(" + 
-        "{Voyage} = \"" + voyageName.toUpperCase() + "\", " + 
-        "{Team No} = " + parseInt(teamNo) + ", " +
-        "{Discord Name} = \"" + discordName + "\" " +
-      ")"
 
-    base('Voyage Signups').select({ 
+    const filter = 'AND(' +
+      '{Voyage} = "' + voyage + '", ' +
+      '{Team No.} = "' + teamNo + '"' +
+    ')'
+    /*
+    const filter = 'AND(' +
+      '{Voyage} = "' + voyage + '", ' +
+      '{Team No.} = "' + teamNo + '", ' +
+      '{Discord ID} = "' + discordUserId + '" ' +
+    ')'
+    */
+
+    console.log(`\ngetVoyager - filter: ${ filter }`)
+    
+    const selectObj = base('Voyage Signups').select({ 
+      fields:[
+        'Email', 'Voyage', 'Team Name', 'Tier', 'Team No.', 'Discord Name', 
+        'Discord ID', 'Role', 'Status', 'Status Comment'
+      ],
       filterByFormula: filter,
-      view: 'Most Recent Voyage Signups' 
+      view: 'Teamsort - '.concat(voyage) 
     })
-    .firstPage((err, records) => {
+    selectObj.eachPage(async function page(records, fetchNextPage) {
+      for (let record of records) {
+        //console.log('...record: ', record)
+        try {
+          const atDiscordId = record.get('Discord ID')[0]
+          //console.log('...atDiscordId: ', atDiscordId, ' typeof atDiscordId: ', typeof atDiscordId)
+          //console.log('...discordUserId: ', discordUserId, ' typeof discordUserId: ', typeof discordUserId)
+          if (atDiscordId.trim() === discordUserId.trim()) {
+            console.log(`getVoyager - Voyage:${ voyage } team:${ teamNo } atDiscordId:${ atDiscordId } discordUserId:${ discordUserId.trim() }`)
+            const tierName = record.get('Tier')
+              .slice(0,6)
+              .toLowerCase()
+              .split(' ')
+              .join('')
+            resolve({ 
+              signup_id: `${ record.id }`,
+              email: `${ record.get('Email') }`,
+              voyage: `${ record.get('Voyage') }`,
+              team_name: `${ record.get('Team Name') }`,
+              tier: `${ tierName }`,
+              team_no: `${ record.get('Team No.') }`,
+              discord_name: `${ record.get('Discord Name') }`,
+              discord_id: `${ atDiscordId }`,
+              role: `${ record.get('Role') }`,
+              status: `${ record.get('Status')}`,
+              status_comment: `${ record.get('Status Comment')}`
+            })
+          }
+        }
+        catch(error) {
+          console.log('getVoyager - error: ', error)
+          console.log(`getVoyager - Error retrieving discordUserId ${ discordUserId }`)
+          reject(error)
+        }
+      }
+      resolve(-1)
+    }, function done(err) {
       if (err) { 
-        console.error('getVoyageSignup - filter: ', filter)
+        console.error('getVoyageTeam - filter: ', filter)
         console.error(err) 
         reject(err) 
       }
 
-      // If the record is found return its id. Otherwise, return null if it's
-      // not found
-      for (let i = 0; i < records.length; ++i) {
-        if (records.length > 0) {
-          resolve(records[i].id)
-        }
-      }
-      resolve(null)
+      console.log(`getVoyager - Voyager not found - Voyage:${ voyage } team:${ teamNo } user:${ discordUserId }`)
+      resolve(-1)
     })
   })
 }
@@ -192,4 +176,4 @@ const updateVoyageStatus = async (discordName, teamNo, status, statusComment) =>
   })
 }
 
-export { getVoyageTeam, getVoyager, getVoyageStatus, updateVoyageStatus }
+export { getVoyageTeam, getVoyager, updateVoyageStatus }
