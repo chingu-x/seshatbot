@@ -78,13 +78,6 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
       '{Voyage} = "' + voyage + '", ' +
       '{Team No.} = "' + teamNo + '"' +
     ')'
-    /*
-    const filter = 'AND(' +
-      '{Voyage} = "' + voyage + '", ' +
-      '{Team No.} = "' + teamNo + '", ' +
-      '{Discord ID} = "' + discordUserId + '" ' +
-    ')'
-    */
 
     console.log(`\ngetVoyager - filter: ${ filter }`)
     
@@ -98,13 +91,9 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
     })
     selectObj.eachPage(async function page(records, fetchNextPage) {
       for (let record of records) {
-        //console.log('...record: ', record)
         try {
           const atDiscordId = record.get('Discord ID')[0]
-          //console.log('...atDiscordId: ', atDiscordId, ' typeof atDiscordId: ', typeof atDiscordId)
-          //console.log('...discordUserId: ', discordUserId, ' typeof discordUserId: ', typeof discordUserId)
           if (atDiscordId.trim() === discordUserId.trim()) {
-            console.log(`getVoyager - Voyage:${ voyage } team:${ teamNo } atDiscordId:${ atDiscordId } discordUserId:${ discordUserId.trim() }`)
             const tierName = record.get('Tier')
               .slice(0,6)
               .toLowerCase()

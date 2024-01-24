@@ -183,7 +183,7 @@ const updateVoyageStatus = async (voyageName, discordUserId, teamNo, noDays, sta
   // If the users Voyage status is `Active` change it to `Inactive` and
   // add the status comment if the number of days since their last post 
   // is >= VOYAGER_INACTIVE_DAYS_THRESHOLD
-  if (voyager.status === 'Active' && noDays < VOYAGER_INACTIVE_DAYS_THRESHOLD) {
+  if (voyager.status === 'Active' && noDays >= VOYAGER_INACTIVE_DAYS_THRESHOLD) {
     newStatus = 'Inactive'
     newStatusComment = `${ currentISODate } - Member inactive for ${ noDays } days. Moved to inactive status\n`
       .concat(voyager.status_comment)
