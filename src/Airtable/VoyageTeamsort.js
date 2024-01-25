@@ -76,12 +76,13 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
 
     const filter = 'AND(' +
       '{Voyage} = "' + voyage + '", ' +
-      '{Team No.} = "' + teamNo + '"' +
+      '{Team No.} = "' + teamNo + '", ' +
+      '{Discord ID} = "' + discordUserId + '" ' +
     ')'
 
     console.log(`\ngetVoyager - filter: ${ filter }`)
     
-    const selectObj = base('Voyage Signups').select({ 
+    base('Voyage Signups').select({ 
       fields:[
         'Email', 'Voyage', 'Team Name', 'Tier', 'Team No.', 'Discord Name', 
         'Discord ID', 'Role', 'Status', 'Status Comment'
@@ -89,30 +90,29 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
       filterByFormula: filter,
       view: 'Teamsort - '.concat(voyage) 
     })
-    selectObj.eachPage(async function page(records, fetchNextPage) {
+    //TODO: Convert .firstPage instead of eachPage
+    .eachPage(async function page(records, fetchNextPage) {
       for (let record of records) {
         try {
           const atDiscordId = record.get('Discord ID')[0]
-          if (atDiscordId.trim() === discordUserId.trim()) {
-            const tierName = record.get('Tier')
-              .slice(0,6)
-              .toLowerCase()
-              .split(' ')
-              .join('')
-            resolve({ 
-              signup_id: `${ record.id }`,
-              email: `${ record.get('Email') }`,
-              voyage: `${ record.get('Voyage') }`,
-              team_name: `${ record.get('Team Name') }`,
-              tier: `${ tierName }`,
-              team_no: `${ record.get('Team No.') }`,
-              discord_name: `${ record.get('Discord Name') }`,
-              discord_id: `${ atDiscordId }`,
-              role: `${ record.get('Role') }`,
-              status: `${ record.get('Status')}`,
-              status_comment: `${ record.get('Status Comment')}`
-            })
-          }
+          const tierName = record.get('Tier')
+            .slice(0,6)
+            .toLowerCase()
+            .split(' ')
+            .join('')
+          resolve({ 
+            signup_id: `${ record.id }`,
+            email: `${ record.get('Email') }`,
+            voyage: `${ record.get('Voyage') }`,
+            team_name: `${ record.get('Team Name') }`,
+            tier: `${ tierName }`,
+            team_no: `${ record.get('Team No.') }`,
+            discord_name: `${ record.get('Discord Name') }`,
+            discord_id: `${ atDiscordId }`,
+            role: `${ record.get('Role') }`,
+            status: `${ record.get('Status')}`,
+            status_comment: `${ record.get('Status Comment')}`
+          })
         }
         catch(error) {
           console.log('getVoyager - error: ', error)
@@ -135,11 +135,8 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
 }
 
 // Update an exising Voyage Signup with current status and a status comment
-const updateVoyageStatus = async (discordName, teamNo, status, statusComment) => {
-
+const updateVoyagerStatus = async (recordID, status, statusComment) => {
   return new Promise(async (resolve, reject) => {
-    const startDt = new Date(sprintStartDt)
-    const endDt = new Date(sprintEndDt)
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
 
     base('Voyage Signups').update([
@@ -165,4 +162,4 @@ const updateVoyageStatus = async (discordName, teamNo, status, statusComment) =>
   })
 }
 
-export { getVoyageTeam, getVoyager, updateVoyageStatus }
+export { getVoyageTeam, getVoyager, updateVoyagerStatus }

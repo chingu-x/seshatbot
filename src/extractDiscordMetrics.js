@@ -1,7 +1,7 @@
 import Discord from './Discord.js'
 import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
-import { getVoyageTeam, getVoyager } from './Airtable/VoyageTeamsort.js'
+import { getVoyageTeam, getVoyager, updateVoyagerStatus } from './Airtable/VoyageTeamsort.js'
 import { 
   GUILD_TEXT, GUILD_FORUM, 
   ADMIN_IDS, 
@@ -153,13 +153,12 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
 }
 
 // Update the Voyagers status in the Voyage Signups table
-const updateVoyageStatus = async (voyageName, discordUserId, teamNo, noDays, status, statusComment) => {
+const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays, status, statusComment) => {
   let newStatus = ''
   let newStatusComment = ''
   const currentDate = new Date()
   const currentISODate = currentDate.toISOString().substring(0,10)
 
-  // TODO: Add logic here
   // Get the Voyage Signup matching the users Voyage name, Discord name, and 
   // team number. Return if the Voyage status is not `Active` or `Inactive`
   const voyager = await getVoyager(voyageName.toUpperCase(), teamNo, discordUserId)
@@ -169,6 +168,13 @@ const updateVoyageStatus = async (voyageName, discordUserId, teamNo, noDays, sta
   }
   if (voyager.status !== 'Active' && voyager.status !== 'Inactive') {
     return
+  }
+
+  // Check to see if the Voyage has posted any messages in this Voyage
+  if (noDays === -1 && voyager.status === 'Active') {
+    newStatus = 'Inactive'
+    newStatusComment = `${ formattedCurrentDate } - No team channel posts since start of Voyage`
+      .concat(voyager.status_comment)
   }
 
   // If the users Voyage status is `Inactive` change it back to `Active` if
@@ -191,9 +197,9 @@ const updateVoyageStatus = async (voyageName, discordUserId, teamNo, noDays, sta
 
   // If the Voyagers status has changed update it in their Voyage Signups row
   if (newStatus !== '') {
-    console.log(`updateVoyageStatus - Updating user: ${ discordUserId } team: ${ teamNo } noDays: ${ noDays } status: ${ newStatus } comment: ${ newStatusComment }`)
+    console.log(`updateVoyagerStatus - Updating user: ${ discordUserId } team: ${ teamNo } noDays: ${ noDays } status: ${ newStatus } comment: ${ newStatusComment }`)
+    //await updateVoyagerStatus(voyager.signup_id, newStatus, newStatusComment)
   }
-  //TODO: Add logic to update Voyage Signups row for this Voyager with new status
 }
 
 // Extract team message metrics from the Discord channels
@@ -313,30 +319,23 @@ const extractDiscordMetrics = async (environment) => {
       // actively communicating in their team channels
       console.time('...Updating Voyage Status...')
 
-      // If the current date is three or more days from most recent 
-      // message date set the status to `Inactive` and set the status comment
-      // to // `yyyy-mm-dd - No team channel posts since `yyyy-mm-dd`
+      // Calculate the number of days since the users last team channel post.
       const currentDate = new Date()
-      const formattedCurrentDate = currentDate.toISOString().substring(0,10)
 
       for (let entry of mostRecentUserMsgs) { 
+        /*
         let status = ''
         let statusComment =''
+        */
         const [key, mostRecentMsgDate] = entry
         const msgDate = new Date(mostRecentMsgDate)
-        const noDays = noDaysBetween(msgDate, currentDate)
+        let noDays = noDaysBetween(msgDate, currentDate)
 
         if (mostRecentMsgDate === null) {
-          status = 'Inactive'
-          statusComment = `${ formattedCurrentDate } - No team channel posts since start of Voyage`
-        } else {
-          if (noDays >= VOYAGER_INACTIVE_DAYS_THRESHOLD) {
-            status = 'Inactive'
-            statusComment = `${ formattedCurrentDate } - No team channel posts since ${ mostRecentMsgDate.toISOString().substring(0,10) }`
-          }
+          noDays = -1
         }
 
-        await updateVoyageStatus(VOYAGE, key.userId, key.teamNo, noDays, status, statusComment)
+        await updateVoyagersStatus(VOYAGE, key.userId, key.teamNo, noDays)
       }
 
       console.timeEnd('...Updating Voyage Status...')
