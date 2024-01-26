@@ -50,10 +50,10 @@ const getTeamNo = (channelName) => {
 // team number. Since the map key is an object this will be a reference. Also,
 // since our map key is an object we need to convert the map keys to
 // an array to search for the matching entry
-const findMapKey = (discordUserName, teamNo, mostRecentUserMsgs) => {
+const findMapKey = (discordUserName, teamNo, discordUserId, mostRecentUserMsgs) => {
   const mapKeys = mostRecentUserMsgs.keys()
   for (let key of mapKeys) {
-    if (key.userName === discordUserName && key.teamNo === teamNo) {
+    if (key.userName === discordUserName && key.teamNo === teamNo && key.userId === discordUserId) {
       const entryValue = mostRecentUserMsgs.get(key)
       if (entryValue === undefined) {
         return undefined
@@ -78,15 +78,15 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary, most
       try {
         // Update the Map of users and their most recent message date to the
         // creation date of this message if it's after the date in the map. 
-        const key = findMapKey(discordUserName, teamNo, mostRecentUserMsgs)
+        const key = findMapKey(discordUserName, teamNo, message.author.id, mostRecentUserMsgs)
         if (key === undefined) {
           mostRecentUserMsgs.set({ userName: discordUserName, teamNo: teamNo, userId: message.author.id }, message.createdAt)
         } else {
           if (key.userName === discordUserName && key.teamNo === teamNo) {
             const mostRecentUserMsgDate = mostRecentUserMsgs.get(key)
-            if (message.createdAt > mostRecentUserMsgDate) {
-              mostRecentUserMsgs.set({ userName: discordUserName, teamNo: teamNo, userId: message.author.id }, message.createdAt)
-            } 
+            if (message.createdAt.getTime() > mostRecentUserMsgDate.getTime()) {
+              mostRecentUserMsgs.set(key, message.createdAt)
+            }
           }
         }
 
@@ -127,7 +127,7 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
       discordUser = await discordIntf.getGuildUser(member.discord_id)
       
       // Add a entry to the most recent user messages map for this user
-      const key = findMapKey(discordUser.user.username, teamNo, mostRecentUserMsgs)
+      const key = findMapKey(discordUser.user.username, teamNo, discordUser.user.id, mostRecentUserMsgs)
       if (key === undefined) {
         mostRecentUserMsgs.set({ 
             userName: discordUser.user.username, 
@@ -162,7 +162,6 @@ const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays) =
   // Get the Voyage Signup matching the users Voyage name, Discord name, and 
   // team number. Return if the Voyage status is not `Active` or `Inactive`
   const voyager = await getVoyager(voyageName.toUpperCase(), teamNo, discordUserId)
-  console.log('voyager: ', voyager)
   if (voyager === -1) {
     return
   }
@@ -197,7 +196,6 @@ const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays) =
 
   // If the Voyagers status has changed update it in their Voyage Signups row
   if (newStatus !== '') {
-    console.log(`updateVoyagerStatus - Updating user: ${ discordUserId } team: ${ teamNo } noDays: ${ noDays } status: ${ newStatus } comment: ${ newStatusComment }`)
     await updateVoyagerStatus(voyager.signup_id, newStatus, newStatusComment)
   }
 }
@@ -229,7 +227,7 @@ const extractDiscordMetrics = async (environment) => {
       console.log('...Voyage schedule: ', schedule)
       let priorTeamNo = 1
 
-      console.time('...fetchAllMessages')
+      console.time('...Fetching all messages')
       for (let channel of teamChannels) {
         // Retrieve all messages in the channel. There is one row in the channel
         // messageSummary array for each team and within each row there is
@@ -279,11 +277,11 @@ const extractDiscordMetrics = async (environment) => {
         }
       }
 
-      console.timeEnd('...fetchAllMessages')
+      console.timeEnd('...Fetching all messages')
 
 
       // Add an entry for users who haven't posted in their channel
-      console.time('...addAbsentUsers')
+      console.time('...Adding absent users')
       for (let channel of teamChannels) {
         if (channel.type !== 'category') {
           const teamNo = getTeamNo(channel.name)
@@ -291,7 +289,7 @@ const extractDiscordMetrics = async (environment) => {
         }
       }
       console.log('\n')
-      console.timeEnd('...addAbsentUsers')
+      console.timeEnd('...Adding absent users')
 
       // Add or update matching rows in Airtable
       let teamNo = 0

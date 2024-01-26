@@ -79,8 +79,6 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
       '{Team No.} = "' + teamNo + '", ' +
       '{Discord ID} = "' + discordUserId + '" ' +
     ')'
-
-    console.log(`\ngetVoyager - filter: ${ filter }`)
     
     base('Voyage Signups').select({ 
       fields:[
