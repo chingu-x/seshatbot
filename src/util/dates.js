@@ -2,7 +2,7 @@
 const noDaysBetween = (startDate, endDate) => {
   try {
     const difference = endDate.getTime() - startDate.getTime()
-    const noDays = Math.ceil(difference / (1000 * 3600 * 24))
+    const noDays = Math.trunc(difference / (1000 * 3600 * 24))
     return noDays
   }
   catch(error) {

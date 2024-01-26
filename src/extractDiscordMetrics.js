@@ -54,11 +54,11 @@ const findMapKey = (discordUserName, teamNo, mostRecentUserMsgs) => {
   const mapKeys = mostRecentUserMsgs.keys()
   for (let key of mapKeys) {
     if (key.userName === discordUserName && key.teamNo === teamNo) {
-      const entryKey = mostRecentUserMsgs.get(key)
-      if (entryKey === undefined) {
+      const entryValue = mostRecentUserMsgs.get(key)
+      if (entryValue === undefined) {
         return undefined
       } 
-      return entryKey
+      return key
     }
   }
   return undefined
@@ -153,7 +153,7 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
 }
 
 // Update the Voyagers status in the Voyage Signups table
-const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays, status, statusComment) => {
+const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays) => {
   let newStatus = ''
   let newStatusComment = ''
   const currentDate = new Date()
@@ -174,7 +174,7 @@ const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays, s
   if (noDays === -1 && voyager.status === 'Active') {
     newStatus = 'Inactive'
     newStatusComment = `${ formattedCurrentDate } - No team channel posts since start of Voyage`
-      .concat(voyager.status_comment)
+      .concat(voyager.status_comment === 'undefined' ? '' : voyager.status_comment)
   }
 
   // If the users Voyage status is `Inactive` change it back to `Active` if
@@ -183,7 +183,7 @@ const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays, s
   if (voyager.status === 'Inactive' && noDays < VOYAGER_INACTIVE_DAYS_THRESHOLD) {
     newStatus = 'Active'
     newStatusComment = `${ currentISODate } - Member returned to Active status\n`
-      .concat(voyager.status_comment)
+      .concat(voyager.status_comment === 'undefined' ? '' : voyager.status_comment)
   }
 
   // If the users Voyage status is `Active` change it to `Inactive` and
@@ -192,13 +192,13 @@ const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays, s
   if (voyager.status === 'Active' && noDays >= VOYAGER_INACTIVE_DAYS_THRESHOLD) {
     newStatus = 'Inactive'
     newStatusComment = `${ currentISODate } - Member inactive for ${ noDays } days. Moved to inactive status\n`
-      .concat(voyager.status_comment)
+      .concat(voyager.status_comment === 'undefined' ? '' : voyager.status_comment)
   }
 
   // If the Voyagers status has changed update it in their Voyage Signups row
   if (newStatus !== '') {
     console.log(`updateVoyagerStatus - Updating user: ${ discordUserId } team: ${ teamNo } noDays: ${ noDays } status: ${ newStatus } comment: ${ newStatusComment }`)
-    //await updateVoyagerStatus(voyager.signup_id, newStatus, newStatusComment)
+    await updateVoyagerStatus(voyager.signup_id, newStatus, newStatusComment)
   }
 }
 
@@ -323,10 +323,6 @@ const extractDiscordMetrics = async (environment) => {
       const currentDate = new Date()
 
       for (let entry of mostRecentUserMsgs) { 
-        /*
-        let status = ''
-        let statusComment =''
-        */
         const [key, mostRecentMsgDate] = entry
         const msgDate = new Date(mostRecentMsgDate)
         let noDays = noDaysBetween(msgDate, currentDate)
