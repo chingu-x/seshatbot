@@ -165,6 +165,9 @@ const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays) =
   if (voyager === -1) {
     return
   }
+  if (voyager.role === 'Voyage Guide') {
+    return
+  }
   if (voyager.status !== 'Active' && voyager.status !== 'Inactive') {
     return
   }
