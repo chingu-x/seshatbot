@@ -88,7 +88,9 @@ const getVoyager = async (voyage, teamNo, discordUserId) => {
       filterByFormula: filter,
       view: 'Teamsort - '.concat(voyage) 
     })
-    //TODO: Convert .firstPage instead of eachPage
+    //TODO: Convert .firstPage instead of eachPage. This is needed to help
+    // make retrieving this information more performant. But, a couple of
+    // attempts have failed so more research is needed.
     .eachPage(async function page(records, fetchNextPage) {
       for (let record of records) {
         try {

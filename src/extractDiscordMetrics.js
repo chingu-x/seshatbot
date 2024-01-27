@@ -103,7 +103,6 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary, most
             }
           }
         }
-        // TODO: Remove this??? const summaryInfo = messageSummary[teamNo][sprintNo]
         resolve()
       } catch (error) {
         console.log(`extractDiscordMetrics - summarizeMessages: Error processing teamNo: ${ teamNo } sprintNo: ${ sprintNo }`)
@@ -139,7 +138,7 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
       for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
         // Add an entry for any team member who hasn't posted messages in this sprint
         if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
-          messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, null)
+          messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, 0)
         }
         // Add the email address to all team members
         messageSummary[teamNo][sprintIndex].userSignupIDs.set(discordUser.user.username, member.signup_id)
@@ -281,7 +280,6 @@ const extractDiscordMetrics = async (environment) => {
       }
 
       console.timeEnd('...Fetching all messages')
-
 
       // Add an entry for users who haven't posted in their channel
       console.time('...Adding absent users')
