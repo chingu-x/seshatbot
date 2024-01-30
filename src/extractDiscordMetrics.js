@@ -11,13 +11,11 @@ import { noDaysBetween } from './util/dates.js'
 let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
-  let sprintNo = 0
   for (let sprint of sprintSchedule) {
-    sprintNo = sprintNo + 1
-    const timestamp = new Date(messageTimestamp).toISOString().substring(0,10)
+    let timestamp = new Date(messageTimestamp).toISOString().substring(0,10)
     if (timestamp >= sprint.startDt && timestamp <= sprint.endDt) {
       return { 
-        sprintNo: sprintNo,
+        sprintNo: sprint.no,
         sprintStartDt: sprint.startDt,
         sprintEndDt: sprint.endDt
       }
@@ -91,16 +89,13 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary, most
         }
 
         // Update the message summary
-        messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
-        messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
-        for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
-          if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
-            if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserName)) {
-              let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserName) + 1
-              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, userCount)
-            } else {
-              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, 1)
-            }
+        const sprintIndex = sprintNo - 1
+        if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
+          if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserName)) {
+            let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserName) + 1
+            messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, userCount)
+          } else {
+            messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, 1)
           }
         }
         resolve()
@@ -135,7 +130,7 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
           }, 0)
       } 
 
-      for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
+      for (let sprintIndex = 0; sprintIndex < 6; ++sprintIndex) {
         // Add an entry for any team member who hasn't posted messages in this sprint
         if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
           messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, 0)
@@ -218,6 +213,8 @@ const extractDiscordMetrics = async (environment) => {
 
   try {
     client.on('ready', async () => {
+      const currentDate = new Date()
+
       // Create a list of the team channels to be processed
       console.log('...Preparing to get team channels...')
       const teamChannels = await discordIntf.getTeamChannels(VOYAGE, CATEGORY, CHANNEL)
@@ -248,13 +245,13 @@ const extractDiscordMetrics = async (environment) => {
           }
         }
 
-        for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
+        for (let sprintNo = 0; sprintNo < 6; ++sprintNo) {
           messageSummary[teamNo].push({ 
             voyage: VOYAGE,
             teamNo: teamNo,
-            sprintNo: sprintNo,
-            sprintStartDt: null,
-            sprintEndDt: null,
+            sprintNo: sprintNo+1,
+            sprintStartDt: schedule.sprintSchedule[sprintNo].startDt,
+            sprintEndDt: schedule.sprintSchedule[sprintNo].endDt,
             tierName: getTierName(channel.name),
             teamChannelName: channel.name,
             userMessages: new Map(),
@@ -297,10 +294,12 @@ const extractDiscordMetrics = async (environment) => {
       console.time('...Add/Update Voyage Metrics')
       for (let team of messageSummary) {
         for (let sprint of team) {
-          for (let [discordName, messageCount] of sprint.userMessages) { 
-            const userSignupID = sprint.userSignupIDs.get(discordName) 
-            if (!ADMIN_IDS.includes(discordName.toLowerCase())) {
-              if (sprint.sprintStartDt !== null) {
+          // Only process sprints that have started
+          const sprintStartDt = new Date(sprint.sprintStartDt)
+          if (sprintStartDt.getTime() <= currentDate.getTime()) {
+            for (let [discordName, messageCount] of sprint.userMessages) { 
+              const userSignupID = sprint.userSignupIDs.get(discordName) 
+              if (!ADMIN_IDS.includes(discordName.toLowerCase())) {
                 const result = await addUpdateTeamMetrics(sprint.voyage, 
                   sprint.teamNo, sprint.tierName, 
                   sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
@@ -319,8 +318,6 @@ const extractDiscordMetrics = async (environment) => {
       console.time('...Updating Voyage Status...')
 
       // Calculate the number of days since the users last team channel post.
-      const currentDate = new Date()
-
       for (let entry of mostRecentUserMsgs) { 
         const [key, mostRecentMsgDate] = entry
         const msgDate = new Date(mostRecentMsgDate)
