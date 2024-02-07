@@ -1,3 +1,14 @@
+// Calculate the number of days between two dates
+const noDaysBetween = (startDate, endDate) => {
+  try {
+    const difference = endDate.getTime() - startDate.getTime()
+    const noDays = Math.trunc(difference / (1000 * 3600 * 24))
+    return noDays
+  }
+  catch(error) {
+    throw new Error(`noDaysBetween - Calculation error. startDate: ${ startdate } endDate: ${ endDate }`)
+  }
+}
 
 // Add days to a date
 const addDays = (theDate, days) => {
@@ -45,4 +56,4 @@ const calculateSprints = (voyageStartDt, voyageEndDt) => {
   return sprintSchedule
 }
 
-export { addDays, subtractDays, calculateSprints }
+export { noDaysBetween, addDays, subtractDays, calculateSprints }

@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits } from 'discord.js'
-import { GUILD_CATEGORY, GUILD_TEXT, GUILD_PUBLIC_THREAD} from './util/constants.js'
+import { GUILD_CATEGORY, GUILD_TEXT, GUILD_PUBLIC_THREAD, GUILD_FORUM} from './util/constants.js'
 export default class Discord {
   
   constructor(environment) {
@@ -31,7 +31,7 @@ export default class Discord {
   // Fetch all messages from the selected Discord team channels.
   // Note that the `callback` routine is invoked for each message to
   // accumulate any desired metrics.
-  async fetchAllMessages(channel, schedule, teamNo, callback, messageSummary) {
+  async fetchAllMessages(channel, schedule, teamNo, callback, messageSummary, mostRecentUserMsgs) {
     let isMoreMessages = true
     let fetchOptions = { limit: 100 }
     try {
@@ -39,7 +39,7 @@ export default class Discord {
         const messages = await channel.messages.fetch(fetchOptions)
         if (messages.size > 0) {
           for (let [messageID, message] of messages) {
-            await callback(schedule, teamNo, message, messageSummary) // Invoke the callback function to process messages
+            await callback(schedule, teamNo, message, messageSummary, mostRecentUserMsgs) // Invoke the callback function to process messages
           }
           fetchOptions = { limit: 100, before: messages.last().id }
         } else {
@@ -58,17 +58,22 @@ export default class Discord {
   }
     
   // Retrieve the users Discord name using their unique id
-  getGuildUser(discordId) {
+  async getGuildUser(discordId) {
     return new Promise(async (resolve, reject) => {
       try {
-        const user = this.guild.members.fetch(discordId)
-        resolve(user)
+        const users = await this.guild.members.fetch()
+        for (let user of users) {
+          const [id, userInfo] = user
+          if (id === discordId) {
+            resolve(userInfo)
+          }
+        }
+        reject(null)
       }
       catch(error) {
         console.error('='.repeat(30))
         console.error(`Error retrieving user ${ discordId } from Discord:`)
-        console.error(err)
-        this.client.destroy() // Terminate this Discord bot
+        console.error(error)
         reject(null)
       }
     })

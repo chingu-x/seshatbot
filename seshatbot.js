@@ -51,7 +51,9 @@ const consoleLogOptions = (options) => {
       
       try {
         if (command._name === 'extract' && source.toLowerCase() === 'discord') {
+          console.time('Extract Discord Metrics...')
           await extractDiscordMetrics(environment)
+          console.timeEnd('Extract Discord Metrics...')
         }
         if (command._name === 'extract' && source.toLowerCase() === 'website') {
           await extractGAMetrics(environment)

@@ -10,8 +10,7 @@ const getVoyageTeam = async (voyage, teamNo) => {
 
     const filter = 'AND(' +
       '{Voyage} = "' + voyage + '", ' +
-      '{Team No.} = "' + teamNo + '", ' +
-      '{Role} != "Mentor"' +
+      '{Team No.} = "' + teamNo + '" ' +
     ')'
     
     base('Voyage Signups').select({ 
@@ -70,4 +69,97 @@ const getVoyageTeam = async (voyage, teamNo) => {
   })
 }
 
-export { getVoyageTeam }
+// Retrieve a voyager for a specific Voyage and team
+const getVoyager = async (voyage, teamNo, discordUserId) => {
+  return new Promise(async (resolve, reject) => {
+    const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+
+    const filter = 'AND(' +
+      '{Voyage} = "' + voyage + '", ' +
+      '{Team No.} = "' + teamNo + '", ' +
+      '{Discord ID} = "' + discordUserId + '" ' +
+    ')'
+    
+    base('Voyage Signups').select({ 
+      fields:[
+        'Email', 'Voyage', 'Team Name', 'Tier', 'Team No.', 'Discord Name', 
+        'Discord ID', 'Role', 'Status', 'Status Comment'
+      ],
+      filterByFormula: filter,
+      view: 'Teamsort - '.concat(voyage) 
+    })
+    //TODO: Convert .firstPage instead of eachPage. This is needed to help
+    // make retrieving this information more performant. But, a couple of
+    // attempts have failed so more research is needed.
+    .eachPage(async function page(records, fetchNextPage) {
+      for (let record of records) {
+        try {
+          const atDiscordId = record.get('Discord ID')[0]
+          const tierName = record.get('Tier')
+            .slice(0,6)
+            .toLowerCase()
+            .split(' ')
+            .join('')
+          resolve({ 
+            signup_id: `${ record.id }`,
+            email: `${ record.get('Email') }`,
+            voyage: `${ record.get('Voyage') }`,
+            team_name: `${ record.get('Team Name') }`,
+            tier: `${ tierName }`,
+            team_no: `${ record.get('Team No.') }`,
+            discord_name: `${ record.get('Discord Name') }`,
+            discord_id: `${ atDiscordId }`,
+            role: `${ record.get('Role') }`,
+            status: `${ record.get('Status')}`,
+            status_comment: `${ record.get('Status Comment')}`
+          })
+        }
+        catch(error) {
+          console.log('getVoyager - error: ', error)
+          console.log(`getVoyager - Error retrieving discordUserId ${ discordUserId }`)
+          reject(error)
+        }
+      }
+      resolve(-1)
+    }, function done(err) {
+      if (err) { 
+        console.error('getVoyageTeam - filter: ', filter)
+        console.error(err) 
+        reject(err) 
+      }
+
+      console.log(`getVoyager - Voyager not found - Voyage:${ voyage } team:${ teamNo } user:${ discordUserId }`)
+      resolve(-1)
+    })
+  })
+}
+
+// Update an exising Voyage Signup with current status and a status comment
+const updateVoyagerStatus = async (recordID, status, statusComment) => {
+  return new Promise(async (resolve, reject) => {
+    const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+
+    base('Voyage Signups').update([
+      {
+        "id": recordID,
+        "fields": {
+          "Status": status,
+          "Status Comment": statusComment
+        }
+      }
+    ], (err, records) => {
+      if (err) {
+        console.error('Error:', err)
+        reject(err)
+      }
+
+      if (records) {
+        resolve(records[0].id)
+      } else {
+        resolve(null)
+      }
+    })
+  })
+}
+
+export { getVoyageTeam, getVoyager, updateVoyagerStatus }

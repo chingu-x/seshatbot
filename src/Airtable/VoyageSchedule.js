@@ -1,5 +1,5 @@
 import Airtable from 'airtable'
-import { calculateSprints } from './utils.js'
+import { calculateSprints } from '../util/dates.js'
 
 // Retrieve the schedule for the specified Voyage
 const getVoyageSchedule = async (voyageName) => {

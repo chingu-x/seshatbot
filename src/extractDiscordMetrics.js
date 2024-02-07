@@ -1,20 +1,21 @@
 import Discord from './Discord.js'
 import { addUpdateTeamMetrics } from './Airtable/VoyageMetrics.js'
 import { getVoyageSchedule } from './Airtable/VoyageSchedule.js'
-import { getVoyageTeam } from './Airtable/VoyageTeamsort.js'
-import { GUILD_TEXT, GUILD_FORUM, ADMIN_IDS } from './util/constants.js'
-
+import { getVoyageTeam, getVoyager, updateVoyagerStatus } from './Airtable/VoyageTeamsort.js'
+import { 
+  GUILD_TEXT, GUILD_FORUM, 
+  ADMIN_IDS, 
+  VOYAGER_INACTIVE_DAYS_THRESHOLD } from './util/constants.js'
+import { noDaysBetween } from './util/dates.js'
 
 let discordIntf
 
 const getSprintInfo = (sprintSchedule, messageTimestamp) => {
-  let sprintNo = 0
   for (let sprint of sprintSchedule) {
-    sprintNo = sprintNo + 1
-    const timestamp = new Date(messageTimestamp).toISOString().substring(0,10)
+    let timestamp = new Date(messageTimestamp).toISOString().substring(0,10)
     if (timestamp >= sprint.startDt && timestamp <= sprint.endDt) {
       return { 
-        sprintNo: sprintNo,
+        sprintNo: sprint.no,
         sprintStartDt: sprint.startDt,
         sprintEndDt: sprint.endDt
       }
@@ -43,9 +44,27 @@ const getTeamNo = (channelName) => {
   return parseInt(channelName.split('-')[2])
 }
 
+// Return the map key value for a specific combination of Discord user name and 
+// team number. Since the map key is an object this will be a reference. Also,
+// since our map key is an object we need to convert the map keys to
+// an array to search for the matching entry
+const findMapKey = (discordUserName, teamNo, discordUserId, mostRecentUserMsgs) => {
+  const mapKeys = mostRecentUserMsgs.keys()
+  for (let key of mapKeys) {
+    if (key.userName === discordUserName && key.teamNo === teamNo && key.userId === discordUserId) {
+      const entryValue = mostRecentUserMsgs.get(key)
+      if (entryValue === undefined) {
+        return undefined
+      } 
+      return key
+    }
+  }
+  return undefined
+}
+
 // Invoked as a callback from Discord.fetchAllMessages this fills in the
 // `messageSummary` object for each voyage, team, sprint, and team member.
-const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
+const summarizeMessages = async (schedule, teamNo, message, messageSummary, mostRecentUserMsgs) => {
   return new Promise(async (resolve, reject) => {
     const discordUserName = message.author.username
     if (ADMIN_IDS.includes(discordUserName.toLowerCase())) {
@@ -55,81 +74,159 @@ const summarizeMessages = async (schedule, teamNo, message, messageSummary) => {
     if (sprintInfo !== null) {
       const { sprintNo, sprintStartDt, sprintEndDt } = sprintInfo
       try {
-        messageSummary[teamNo][sprintNo].sprintStartDt = sprintStartDt
-        messageSummary[teamNo][sprintNo].sprintEndDt = sprintEndDt
-        for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
-          if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
-            if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserName)) {
-              let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserName) + 1
-              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, userCount)
-            } else {
-              messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, 1)
+        // Update the Map of users and their most recent message date to the
+        // creation date of this message if it's after the date in the map. 
+        const key = findMapKey(discordUserName, teamNo, message.author.id, mostRecentUserMsgs)
+        if (key === undefined) {
+          mostRecentUserMsgs.set({ userName: discordUserName, teamNo: teamNo, userId: message.author.id }, message.createdAt)
+        } else {
+          if (key.userName === discordUserName && key.teamNo === teamNo) {
+            const mostRecentUserMsgDate = mostRecentUserMsgs.get(key)
+            if (message.createdAt.getTime() > mostRecentUserMsgDate.getTime()) {
+              mostRecentUserMsgs.set(key, message.createdAt)
             }
           }
         }
-        const summaryInfo = messageSummary[teamNo][sprintNo]
+
+        // Update the message summary
+        const sprintIndex = sprintNo - 1
+        if (messageSummary[teamNo][sprintIndex].teamNo === teamNo && messageSummary[teamNo][sprintIndex].sprintNo === sprintNo) {
+          if (messageSummary[teamNo][sprintIndex].userMessages.has(discordUserName)) {
+            let userCount = messageSummary[teamNo][sprintIndex].userMessages.get(discordUserName) + 1
+            messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, userCount)
+          } else {
+            messageSummary[teamNo][sprintIndex].userMessages.set(discordUserName, 1)
+          }
+        }
         resolve()
-      } catch (err) {
-        console.log(`extractDiscordMetrics - summarizeMessages: Error procesing teamNo: ${ teamNo } sprintNo: ${ sprintNo }`)
-        console.log(err)
-        reject(err)
+      } catch (error) {
+        console.log(`extractDiscordMetrics - summarizeMessages: Error processing teamNo: ${ teamNo } sprintNo: ${ sprintNo }`)
+        console.log(error)
+        reject(error)
       }
     }
   })
 }
 
-  // Add a userMessages entry for any team member who didn't post a
-  // message in a sprint & set the email address for all team members
-  const addAbsentUsers = async (schedule, teamNo, messageSummary) => {
-    const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
+// Add a userMessages entry for any team member who didn't post a
+// message in a sprint & set the email address for all team members
+const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMsgs) => {
+  const teamMembers = await getVoyageTeam(schedule.voyageName, teamNo)
 
-    for (let member of teamMembers) {
-      let discordUser
-      try {
-        discordUser = await discordIntf.getGuildUser(member.discord_id)
-        for (let sprintIndex = 1; sprintIndex <= 6; ++sprintIndex) {
-          // Add an entry for any team member who posted no messages
-          if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
-            messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, 0)
-          }
-          // Add the email address to all team members
-          messageSummary[teamNo][sprintIndex].userSignupIDs.set(discordUser.user.username, member.signup_id)
+  let member
+  let discordUser
+
+  for (member of teamMembers) {
+    try {
+      discordUser = await discordIntf.getGuildUser(member.discord_id)
+      
+      // Add a entry to the most recent user messages map for this user
+      const key = findMapKey(discordUser.user.username, teamNo, discordUser.user.id, mostRecentUserMsgs)
+      if (key === undefined) {
+        mostRecentUserMsgs.set({ 
+            userName: discordUser.user.username, 
+            teamNo: teamNo, 
+            userId: discordUser.user.id
+          }, 0)
+      } 
+
+      for (let sprintIndex = 0; sprintIndex < 6; ++sprintIndex) {
+        // Add an entry for any team member who hasn't posted messages in this sprint
+        if (!messageSummary[teamNo][sprintIndex].userMessages.has(discordUser.user.username)) {
+          messageSummary[teamNo][sprintIndex].userMessages.set(discordUser.user.username, 0)
         }
-      }
-      catch(err) {
-        console.log(`\naddAbsentUsers - user: ${ discordUser } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
+        // Add the email address to all team members
+        messageSummary[teamNo][sprintIndex].userSignupIDs.set(discordUser.user.username, member.signup_id)
       }
     }
+    catch(error) {
+      console.log('\naddAbsentUsers error: ', error !== null ? error : 'unknown error')
+      console.log(`\naddAbsentUsers - user: ${ discordUser.id }/${ discordUser.name } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
+    }
+  }
+}
+
+// Update the Voyagers status in the Voyage Signups table
+const updateVoyagersStatus = async (voyageName, discordUserId, teamNo, noDays) => {
+  let newStatus = ''
+  let newStatusComment = ''
+  const currentDate = new Date()
+  const currentISODate = currentDate.toISOString().substring(0,10)
+
+  // Get the Voyage Signup matching the users Voyage name, Discord name, and 
+  // team number. Return if the Voyage status is not `Active` or `Inactive`
+  const voyager = await getVoyager(voyageName.toUpperCase(), teamNo, discordUserId)
+  if (voyager === -1) {
+    return
+  }
+  if (voyager.role === 'Voyage Guide') {
+    return
+  }
+  if (voyager.status !== 'Active' && voyager.status !== 'Inactive') {
+    return
+  }
+
+  // Check to see if the Voyage has posted any messages in this Voyage
+  if (noDays === -1 && voyager.status === 'Active') {
+    newStatus = 'Inactive'
+    newStatusComment = `${ formattedCurrentDate } - No team channel posts since start of Voyage`
+      .concat(voyager.status_comment === 'undefined' ? '' : voyager.status_comment)
+  }
+
+  // If the users Voyage status is `Inactive` change it back to `Active` if
+  // the number of days since their last post is < VOYAGER_INACTIVE_DAYS_THRESHOLD
+  // and return
+  if (voyager.status === 'Inactive' && noDays < VOYAGER_INACTIVE_DAYS_THRESHOLD) {
+    newStatus = 'Active'
+    newStatusComment = `${ currentISODate } - Member returned to Active status\n`
+      .concat(voyager.status_comment === 'undefined' ? '' : voyager.status_comment)
+  }
+
+  // If the users Voyage status is `Active` change it to `Inactive` and
+  // add the status comment if the number of days since their last post 
+  // is >= VOYAGER_INACTIVE_DAYS_THRESHOLD
+  if (voyager.status === 'Active' && noDays >= VOYAGER_INACTIVE_DAYS_THRESHOLD) {
+    newStatus = 'Inactive'
+    newStatusComment = `${ currentISODate } - Member inactive for ${ noDays } days. Moved to inactive status\n`
+      .concat(voyager.status_comment === 'undefined' ? '' : voyager.status_comment)
+  }
+
+  // If the Voyagers status has changed update it in their Voyage Signups row
+  if (newStatus !== '') {
+    await updateVoyagerStatus(voyager.signup_id, newStatus, newStatusComment)
+  }
 }
 
 // Extract team message metrics from the Discord channels
 const extractDiscordMetrics = async (environment) => {
-  console.log('Connecting to Discord...')
+  console.log('...Connecting to Discord...')
   discordIntf = new Discord(environment)
   const { DISCORD_TOKEN, GUILD_ID, VOYAGE, CATEGORY, CHANNEL } = environment.getOperationalVars()
 
   const client = discordIntf.getDiscordClient()
   await client.login(DISCORD_TOKEN)
-  console.log('Discord client established...')
+  console.log('...Discord client established...')
 
   const guild = await client.guilds.fetch(GUILD_ID)
   discordIntf.setGuild(guild)
-  console.log('Connection to Discord established...')
+  console.log('...Connection to Discord established...')
 
   try {
     client.on('ready', async () => {
+      const currentDate = new Date()
+
       // Create a list of the team channels to be processed
-      console.log('Preparing to get team channels...')
+      console.log('...Preparing to get team channels...')
       const teamChannels = await discordIntf.getTeamChannels(VOYAGE, CATEGORY, CHANNEL)
 
       // Count the number of messages for each team member in each team channel
       let messageSummary = [[]] // Six sprints within any number of teams with the first cell in each being unused
+      let mostRecentUserMsgs = new Map() // Map containing the date of the most recent message posted by each user
       const schedule = await getVoyageSchedule(VOYAGE)
-      console.log('schedule: ', schedule)
+      console.log('...Voyage schedule: ', schedule)
       let priorTeamNo = 1
 
-      console.time('fetchAllMessages')
-      console.log('Preparing to fetch messages...')
+      console.time('...Fetching all messages')
       for (let channel of teamChannels) {
         // Retrieve all messages in the channel. There is one row in the channel
         // messageSummary array for each team and within each row there is
@@ -148,13 +245,13 @@ const extractDiscordMetrics = async (environment) => {
           }
         }
 
-        for (let sprintNo = 0; sprintNo < 7; ++sprintNo) {
+        for (let sprintNo = 0; sprintNo < 6; ++sprintNo) {
           messageSummary[teamNo].push({ 
             voyage: VOYAGE,
             teamNo: teamNo,
-            sprintNo: sprintNo,
-            sprintStartDt: null,
-            sprintEndDt: null,
+            sprintNo: sprintNo+1,
+            sprintStartDt: schedule.sprintSchedule[sprintNo].startDt,
+            sprintEndDt: schedule.sprintSchedule[sprintNo].endDt,
             tierName: getTierName(channel.name),
             teamChannelName: channel.name,
             userMessages: new Map(),
@@ -164,14 +261,14 @@ const extractDiscordMetrics = async (environment) => {
         priorTeamNo = teamNo
 
         if (channel.type === GUILD_TEXT) {
-            await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
-              summarizeMessages, messageSummary)
+          await discordIntf.fetchAllMessages(channel, schedule, teamNo, 
+            summarizeMessages, messageSummary, mostRecentUserMsgs)
         } else if (channel.type === GUILD_FORUM) {
           const threads = await channel.threads.fetch()
           const forumThreads = Array.from(threads.threads).map(thread => thread[1])
           for (let thread of forumThreads) {
             await discordIntf.fetchAllMessages(thread, schedule, teamNo, 
-              summarizeMessages, messageSummary)
+              summarizeMessages, messageSummary, mostRecentUserMsgs)
           }
         } else {
           console.log(`Skipping unsupported channel type - ${ channel.type } / ${ channel.id } / ${ channel.name }`)
@@ -179,33 +276,30 @@ const extractDiscordMetrics = async (environment) => {
         }
       }
 
-      console.timeLog('fetchAllMessages')
-      console.timeEnd('fetchAllMessages')
-
+      console.timeEnd('...Fetching all messages')
 
       // Add an entry for users who haven't posted in their channel
-      console.time('addAbsentUsers')
-      console.log('Preparing to add absent users...')
+      console.time('...Adding absent users')
       for (let channel of teamChannels) {
         if (channel.type !== 'category') {
           const teamNo = getTeamNo(channel.name)
-          await addAbsentUsers(schedule, teamNo, messageSummary)
+          await addAbsentUsers(schedule, teamNo, messageSummary, mostRecentUserMsgs)
         }
       }
       console.log('\n')
-      console.timeLog('addAbsentUsers')
-      console.timeEnd('addAbsentUsers')
+      console.timeEnd('...Adding absent users')
 
       // Add or update matching rows in Airtable
       let teamNo = 0
-      console.time('Add/Update Airtable')
-      console.log('Preparing to update Airtable...')
+      console.time('...Add/Update Voyage Metrics')
       for (let team of messageSummary) {
         for (let sprint of team) {
-          for (let [discordName, messageCount] of sprint.userMessages) { 
-            const userSignupID = sprint.userSignupIDs.get(discordName) 
-            if (!ADMIN_IDS.includes(discordName.toLowerCase())) {
-              if (sprint.sprintStartDt !== null) {
+          // Only process sprints that have started
+          const sprintStartDt = new Date(sprint.sprintStartDt)
+          if (sprintStartDt.getTime() <= currentDate.getTime()) {
+            for (let [discordName, messageCount] of sprint.userMessages) { 
+              const userSignupID = sprint.userSignupIDs.get(discordName) 
+              if (!ADMIN_IDS.includes(discordName.toLowerCase())) {
                 const result = await addUpdateTeamMetrics(sprint.voyage, 
                   sprint.teamNo, sprint.tierName, 
                   sprint.sprintNo, sprint.sprintStartDt, sprint.sprintEndDt, 
@@ -217,8 +311,26 @@ const extractDiscordMetrics = async (environment) => {
 
         teamNo += 1
       }
-      console.timeLog('Add/Update Airtable')
-      console.timeEnd('Add/Update Airtable')
+      console.timeEnd('...Add/Update Voyage Metrics')
+
+      // Update the Voyage Signups status for Voyagers who are not
+      // actively communicating in their team channels
+      console.time('...Updating Voyage Status...')
+
+      // Calculate the number of days since the users last team channel post.
+      for (let entry of mostRecentUserMsgs) { 
+        const [key, mostRecentMsgDate] = entry
+        const msgDate = new Date(mostRecentMsgDate)
+        let noDays = noDaysBetween(msgDate, currentDate)
+
+        if (mostRecentMsgDate === null) {
+          noDays = -1
+        }
+
+        await updateVoyagersStatus(VOYAGE, key.userId, key.teamNo, noDays)
+      }
+
+      console.timeEnd('...Updating Voyage Status...')
 
       // Terminate processing
       discordIntf.commandResolve('done')
