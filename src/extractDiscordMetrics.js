@@ -141,7 +141,7 @@ const addAbsentUsers = async (schedule, teamNo, messageSummary, mostRecentUserMs
     }
     catch(error) {
       console.log('\naddAbsentUsers error: ', error !== null ? error : 'unknown error')
-      console.log(`\naddAbsentUsers - user: ${ discordUser.id }/${ discordUser.name } member: ${ member.tier }-${member.team_no} / ${ member.email } / ${ member.discord_name }`)
+      console.log(`\naddAbsentUsers - user: ${ discordUser?.id }/${ discordUser?.name } member: ${ member?.tier }-${member?.team_no} / ${ member?.email } / ${ member?.discord_name }`)
     }
   }
 }
@@ -322,6 +322,14 @@ const extractDiscordMetrics = async (environment) => {
         const [key, mostRecentMsgDate] = entry
         const msgDate = new Date(mostRecentMsgDate)
         let noDays = noDaysBetween(msgDate, currentDate)
+
+        // Set the noDays between messages to be the inactive threshold if no
+        // messages have been posted. At the start of a Voyage this will cause
+        // the inactive status message to be added to Airtable until the
+        // Voyager posts their first message.
+        if (mostRecentMsgDate === 0) {
+          noDays = VOYAGER_INACTIVE_DAYS_THRESHOLD
+        }
 
         if (mostRecentMsgDate === null) {
           noDays = -1
