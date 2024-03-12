@@ -3,6 +3,7 @@ const program = new Command();
 import Environment from './src/Environment.js'
 import extractDiscordMetrics from './src/extractDiscordMetrics.js'
 import extractGAMetrics from './src/extractGAMetrics.js'
+import extractGitHubMetrics from './src/extractGithubMetrics.js'
 
 const environment = new Environment()
 environment.initDotEnv('./')
@@ -54,6 +55,9 @@ const consoleLogOptions = (options) => {
           console.time('Extract Discord Metrics...')
           await extractDiscordMetrics(environment)
           console.timeEnd('Extract Discord Metrics...')
+        }
+        if (command._name === 'extract' && source.toLowerCase() === 'github') {
+          await extractGitHubMetrics(environment)
         }
         if (command._name === 'extract' && source.toLowerCase() === 'website') {
           await extractGAMetrics(environment)

@@ -14,6 +14,8 @@ export default class Environment {
     console.log('- AIRTABLE_API_KEY: ', process.env.AIRTABLE_API_KEY)
     console.log('- AIRTABLE_BASE: ', process.env.AIRTABLE_BASE)
     console.log('- DISCORD_TOKEN: ', process.env.DISCORD_TOKEN)
+    console.log('- GITHUB_ORG: ', process.env.GITHUB_ORG)
+    console.log('- GITHUB_TOKEN: ', process.env.GITHUB_TOKEN)
     console.log('- VOYAGE: ', process.env.VOYAGE)
     console.log('- CATEGORY: ', process.env.CATEGORY)
     console.log('- CHANNEL: ', process.env.CHANNEL)
@@ -51,7 +53,8 @@ export default class Environment {
   setOperationalVars(options) {
     // Retrieve the current variable values from `.env` file
     let { DEBUG, GUILD_ID, AIRTABLE_API_KEY, AIRTABLE_BASE, DISCORD_TOKEN, 
-      VOYAGE, CATEGORY, CHANNEL, FIRST_DATE, LAST_DATE, INTERVAL_DAYS} = process.env
+      VOYAGE, CATEGORY, CHANNEL, FIRST_DATE, LAST_DATE, INTERVAL_DAYS, GITHUB_ORG,
+      GITHUB_TOKEN} = process.env
 
     // Initialize `operationalVars` allowing command line parameter values
     // to override `.env` parameters
@@ -60,6 +63,8 @@ export default class Environment {
     this.operationalVars.AIRTABLE_API_KEY = AIRTABLE_API_KEY
     this.operationalVars.AIRTABLE_BASE = AIRTABLE_BASE
     this.operationalVars.DISCORD_TOKEN = DISCORD_TOKEN
+    this.operationalVars.GITHUB_ORG = GITHUB_ORG
+    this.operationalVars.GITHUB_TOKEN = GITHUB_TOKEN
     this.operationalVars.GUILD_ID = GUILD_ID
     this.operationalVars.VOYAGE = options.voyage ? options.voyage : VOYAGE
     this.operationalVars.CATEGORY = CATEGORY
