@@ -12,5 +12,6 @@ export const ADMIN_IDS = [
   'notcori', 
   'travel_light', 
   'uhurubot', 
-  'chingu'
+  'chingu',
+  'titan'
 ]
