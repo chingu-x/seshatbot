@@ -1,6 +1,64 @@
 import Airtable from 'airtable'
 import { getVoyagerDiscordId } from './Applications.js'
 
+// Retrieve the list of all teams in this Voyage
+const getVoyageTeams = async (voyage) => {
+  return new Promise(async (resolve, reject) => {
+    let voyageTeams = []
+
+    const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+
+    const filter = '{Voyage} = "' + voyage.toUpperCase() + '"'
+    
+    base('Voyage Signups').select({ 
+      fields:['Voyage', 'Team Name', 'Tier', 'Team No.'],
+      filterByFormula: filter,
+      view: 'Teamsort - '.concat(voyage.toUpperCase(),' (Jim)') 
+    })
+    .eachPage(async function page(records, fetchNextPage) {
+      console.log('getVoyageTeams - records: ', records)
+      for (let record of records) {
+        try {
+          // Check to see if the team has already been added to the array of
+          // teams in this Voyage
+          const teamNo = record.get('Team No.')
+          const isTeamAdded = (team) => team.team_no === teamNo
+          if (!voyageTeams.findIndex(isTeamAdded)) {
+            // Add the team to the array of teams for this Voyage
+            const tierName = record.get('Tier')
+              .slice(0,6)
+              .toLowerCase()
+              .split(' ')
+              .join('')
+            voyageTeams.push({ 
+              team_id: `${ record.id }`,
+              voyage: `${ record.get('Voyage') }`,
+              team_name: `${ record.get('Team Name') }`,
+              tier: `${ tierName }`,
+              team_no: teamNo,
+            })
+          }
+        }
+        catch(err) {
+          console.log(`getVoyageTeams - Invalid team record: `, record)
+        }   
+      }
+
+      // To fetch the next page of records, call 'fetchNextPage'.
+      // If there are more records, 'page' will get called again.
+      // If there are no more records, 'done' will get called.
+      fetchNextPage()
+    }, function done(err) {
+      if (err) { 
+        console.error('getVoyageTeams - filter: ', filter)
+        console.error(err) 
+        reject(err) 
+      }
+      resolve(voyageTeams)
+    })
+  })
+}
+
 // Retrieve all voyagers for a specific Voyage
 const getVoyageTeam = async (voyage, teamNo) => {
   return new Promise(async (resolve, reject) => {
@@ -162,4 +220,4 @@ const updateVoyagerStatus = async (recordID, status, statusComment) => {
   })
 }
 
-export { getVoyageTeam, getVoyager, updateVoyagerStatus }
+export { getVoyageTeams, getVoyageTeam, getVoyager, updateVoyagerStatus }
