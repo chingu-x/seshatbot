@@ -8,7 +8,8 @@ const getVoyageTeams = async (voyage) => {
 
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
 
-    const filter = '{Voyage} = "' + voyage.toUpperCase() + '"'
+    const filter = 'AND({Voyage} = "' + voyage.toUpperCase() + '", ' +
+      '{Team No.} != "")'
     
     base('Voyage Signups').select({ 
       fields:['Voyage', 'Team Name', 'Tier', 'Team No.'],
@@ -16,14 +17,16 @@ const getVoyageTeams = async (voyage) => {
       view: 'Teamsort - '.concat(voyage.toUpperCase(),' (Jim)') 
     })
     .eachPage(async function page(records, fetchNextPage) {
-      console.log('getVoyageTeams - records: ', records)
       for (let record of records) {
         try {
           // Check to see if the team has already been added to the array of
           // teams in this Voyage
-          const teamNo = record.get('Team No.')
+          let teamNo = record.get('Team No.')
+          if (teamNo.length < 2 ) {
+            teamNo = '0'.concat(teamNo)
+          }
           const isTeamAdded = (team) => team.team_no === teamNo
-          if (!voyageTeams.findIndex(isTeamAdded)) {
+          if (voyageTeams.findIndex(isTeamAdded) === -1) {
             // Add the team to the array of teams for this Voyage
             const tierName = record.get('Tier')
               .slice(0,6)
@@ -41,6 +44,7 @@ const getVoyageTeams = async (voyage) => {
         }
         catch(err) {
           console.log(`getVoyageTeams - Invalid team record: `, record)
+          console.log('err: ', err)
         }   
       }
 
@@ -54,7 +58,16 @@ const getVoyageTeams = async (voyage) => {
         console.error(err) 
         reject(err) 
       }
-      resolve(voyageTeams)
+      const teamComparator = (a, b) => {
+        if (a.team_no < b.team_no) {
+          return -1
+        }
+        if (a.team_no > b.team_no) {
+          return 1
+        }
+        return 0
+      }
+      resolve(voyageTeams.sort(teamComparator))
     })
   })
 }
