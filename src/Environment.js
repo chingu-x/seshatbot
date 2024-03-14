@@ -54,7 +54,7 @@ export default class Environment {
     // Retrieve the current variable values from `.env` file
     let { DEBUG, GUILD_ID, AIRTABLE_API_KEY, AIRTABLE_BASE, DISCORD_TOKEN, 
       VOYAGE, CATEGORY, CHANNEL, FIRST_DATE, LAST_DATE, INTERVAL_DAYS, GITHUB_ORG,
-      GITHUB_TOKEN} = process.env
+      GITHUB_TOKEN } = process.env
 
     // Initialize `operationalVars` allowing command line parameter values
     // to override `.env` parameters
