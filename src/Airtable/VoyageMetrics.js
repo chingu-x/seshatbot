@@ -3,6 +3,37 @@ import { noDaysBetween } from '../util/dates.js'
 
 // Retrieve Voyage Metrics for the matching voyage name, team number, 
 // sprint number, & Discord user name
+const getAllVoyageMetrics = async (voyageName) => {
+  return new Promise(async (resolve, reject) => {
+    const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+    const filter = "{Name} = \"" + voyageName.toUpperCase() + "\" "
+
+    base('Voyage Metrics').select({ 
+      filterByFormula: filter,
+      view: 'Voyage Metrics' 
+    })
+    .firstPage((err, records) => {
+      if (err) { 
+        console.error('getAllVoyageMetrics - filter: ', filter)
+        console.error(err) 
+        reject(err) 
+      }
+
+      // If the record is found return its id. Otherwise, return null if it's
+      // not found
+      const voyageMetrics = []
+      for (let i = 0; i < records.length; ++i) {
+        if (records.length > 0) {
+          voyageMetrics.push(records[i]._rawJson.fields)
+        }
+      }
+      resolve(voyageMetrics)
+    })
+  })
+}
+
+// Retrieve Voyage Metrics for the matching voyage name, team number, 
+// sprint number, & Discord user name
 const getVoyageMetric = async (voyageName, teamNo, sprintNo, discordName) => {
   return new Promise(async (resolve, reject) => {
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
@@ -138,4 +169,7 @@ const addUpdateTeamMetrics = async (voyageName, teamNo, tierName,
   })
 }
 
-export { getVoyageMetric,  addVoyageMetric, updateVoyageMetric, addUpdateTeamMetrics }
+export { getAllVoyageMetrics, getVoyageMetric,  
+  addVoyageMetric, updateVoyageMetric, 
+  addUpdateTeamMetrics 
+}

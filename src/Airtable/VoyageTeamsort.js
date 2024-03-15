@@ -14,7 +14,7 @@ const getVoyageTeams = async (voyage) => {
     base('Voyage Signups').select({ 
       fields:['Voyage', 'Team Name', 'Tier', 'Team No.'],
       filterByFormula: filter,
-      view: 'Teamsort - '.concat(voyage.toUpperCase(),' (Jim)') 
+      view: 'Teamsort - for Bots'
     })
     .eachPage(async function page(records, fetchNextPage) {
       for (let record of records) {

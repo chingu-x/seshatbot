@@ -1,11 +1,10 @@
 import { Octokit } from 'octokit'
 
-const getTeams = async (GITHUB_ORG, GITHUB_TOKEN, voyageTeams) => {
+const getPendingMembers = async (GITHUB_ORG, GITHUB_TOKEN, voyageTeams) => {
   const octokit = new Octokit({
     auth: GITHUB_TOKEN
   })
 
-  // Loop through each team in the `teams` array
   let githubTeams = []
   for (let team of voyageTeams) {
     const githubTeamName = team.voyage.concat('-', team.tier, '-team-', team.team_no)
@@ -14,11 +13,12 @@ const getTeams = async (GITHUB_ORG, GITHUB_TOKEN, voyageTeams) => {
         'X-GitHub-Api-Version': '2022-11-28'
       }
     })
-    console.log('githubTeam.data', githubTeam.data)
-    githubTeams.push(githubTeam)
+    if (githubTeam.data.length > 0) {
+      githubTeams.push(githubTeam)
+    }
   }
 
   return githubTeams
 }
 
-export { getTeams }
+export { getPendingMembers }
