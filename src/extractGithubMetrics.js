@@ -1,4 +1,4 @@
-import { getAllVoyageMetrics } from './Airtable/VoyageMetrics.js'
+import { getAllVoyageMetrics, updateGitHubMetric } from './Airtable/VoyageMetrics.js'
 import { getVoyageTeams } from './Airtable/VoyageTeamsort.js'
 import { getPendingMembers } from './GitHub.js'
 
@@ -10,7 +10,7 @@ const extractGitHubMetrics = async (environment) => {
   // joined their team by responding to the invitation email) 
   const voyageTeams = await getVoyageTeams(VOYAGE)
   const pendingMembers = await getPendingMembers(GITHUB_ORG, GITHUB_TOKEN, voyageTeams)
-  console.log('pendingMembers: ', pendingMembers)
+  //console.log('pendingMembers: ', pendingMembers.length)
 
   // Update the Joined Github Team column in the Airtable Voyage Metrics table 
   // for any team members who haven't yet joined the GitHub team (aka Pending 
@@ -18,9 +18,18 @@ const extractGitHubMetrics = async (environment) => {
   // has since joined their team.
   const voyageMetrics = await getAllVoyageMetrics(VOYAGE)
   for (let voyager of voyageMetrics) {
-    console.log('voyager: ', voyager)
+    const isPendingMember = (voyager) => voyager.voyager_metric['Joined GitHub Team'] === 'Yes'
+    const pendingMember = pendingMembers.findIndex(isPendingMember)
+    if (pendingMember === -1) {
+      await updateGitHubMetric(voyager.id, voyager.voyager_metric.Name, 
+        voyager.voyager_metric['Team No'], voyager.voyager_metric['Sprint No'],
+        voyager.voyager_metric['Discord Name'], 'Yes')
+    } else {
+      await updateGitHubMetric(voyager.id, voyager.voyager_metric.Name, 
+        voyager.voyager_metric['Team No'], voyager.voyager_metric['Sprint No'],
+        voyager.voyager_metric['Discord Name'], 'No')
+    }
   }
-  
 }
 
 export default extractGitHubMetrics

@@ -5,6 +5,8 @@ import { noDaysBetween } from '../util/dates.js'
 // sprint number, & Discord user name
 const getAllVoyageMetrics = async (voyageName) => {
   return new Promise(async (resolve, reject) => {
+    const voyageMetrics = []
+
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
     const filter = "{Name} = \"" + voyageName.toUpperCase() + "\" "
 
@@ -12,20 +14,27 @@ const getAllVoyageMetrics = async (voyageName) => {
       filterByFormula: filter,
       view: 'Voyage Metrics' 
     })
-    .firstPage((err, records) => {
+    .eachPage(async function page(records, fetchNextPage) {
+      // If the record is found return its id & data columns. Otherwise, 
+      // return null if it's not found
+      for (let i = 0; i < records.length; ++i) {
+        if (records.length > 0) {
+          const voyager = {
+            id: records[i].id, 
+            voyager_metric: records[i]._rawJson.fields
+          }
+          voyageMetrics.push(voyager)
+        }
+      }
+      // To fetch the next page of records, call 'fetchNextPage'.
+      // If there are more records, 'page' will get called again.
+      // If there are no more records, 'done' will get called.
+      fetchNextPage()
+    }, function done(err) {
       if (err) { 
         console.error('getAllVoyageMetrics - filter: ', filter)
         console.error(err) 
         reject(err) 
-      }
-
-      // If the record is found return its id. Otherwise, return null if it's
-      // not found
-      const voyageMetrics = []
-      for (let i = 0; i < records.length; ++i) {
-        if (records.length > 0) {
-          voyageMetrics.push(records[i]._rawJson.fields)
-        }
       }
       resolve(voyageMetrics)
     })
@@ -107,6 +116,40 @@ const addVoyageMetric = async (voyageName, teamNo, tierName,
 }
 
 // Update an exising Voyage Metric row to AirTable
+const updateGitHubMetric = async (recordID, voyageName, teamNo, sprintNo, discordName, githubPendingStatus) => {
+  return new Promise(async (resolve, reject) => {
+    console.log('recordID: ', recordID, ' voyageName: ', voyageName, ' teamNo: ', teamNo, 
+    ' sprintNo: ', sprintNo, ' discordName: ', discordName, ' githubPendingStatus: ', githubPendingStatus)
+
+    const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
+
+    base('Voyage Metrics').update([
+      {
+        "id": recordID,
+        "fields": {
+          "Name": voyageName,
+          "Sprint No": sprintNo,
+          "Team No": teamNo,
+          "Discord Name": discordName,
+          "Joined GitHub Team": githubPendingStatus,
+        }
+      }
+    ], (err, records) => {
+      if (err) {
+        console.error('updateGitHubMetric - Error:', err)
+        reject(err)
+      }
+
+      if (records) {
+        resolve(records[0].id)
+      } else {
+        resolve(null)
+      }
+    })
+  })
+}
+
+// Update an exising Voyage Metric row to AirTable
 const updateVoyageMetric = async (recordID, voyageName, teamNo, tierName, 
   sprintNo, sprintStartDt, sprintEndDt, discordName, messageCount, signupID) => {
 
@@ -170,6 +213,7 @@ const addUpdateTeamMetrics = async (voyageName, teamNo, tierName,
 }
 
 export { getAllVoyageMetrics, getVoyageMetric,  
-  addVoyageMetric, updateVoyageMetric, 
+  addVoyageMetric, 
+  updateGitHubMetric, updateVoyageMetric, 
   addUpdateTeamMetrics 
 }
