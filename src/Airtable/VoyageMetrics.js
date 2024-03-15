@@ -118,9 +118,6 @@ const addVoyageMetric = async (voyageName, teamNo, tierName,
 // Update an exising Voyage Metric row to AirTable
 const updateGitHubMetric = async (recordID, voyageName, teamNo, sprintNo, discordName, githubPendingStatus) => {
   return new Promise(async (resolve, reject) => {
-    console.log('recordID: ', recordID, ' voyageName: ', voyageName, ' teamNo: ', teamNo, 
-    ' sprintNo: ', sprintNo, ' discordName: ', discordName, ' githubPendingStatus: ', githubPendingStatus)
-
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE)
 
     base('Voyage Metrics').update([
